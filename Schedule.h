@@ -14,7 +14,7 @@ enum lectime {
   WED1, WED2, WED3, WED4, WED5, WED6, WED7,
   THU1, THU2, THU3, THU4, THU5, THU6, THU7,
   FRI1, FRI2, FRI3, FRI4, FRI5, FRI6, FRI7,
-  EXP1, EXP2, ACT1, ACT2, ACT3, 
+  EXP1, EXP2, ACT1, ACT2, ACT3,
 };
 
 typedef int crsid;
@@ -43,17 +43,17 @@ struct section
   vector<lectime> lecture;
 };
 
-struct profess_id_comp { 
+struct profess_id_comp {
   bool operator() (const profess &a, const profess &b)
   { return a.name < b.name; }
 };
 
-struct course_id_comp { 
+struct course_id_comp {
   bool operator() (const course &a, const course &b)
   { return a.id < b.id; }
 };
 
-struct section_id_comp { 
+struct section_id_comp {
   bool operator() (const section &a, const section &b) {
     if(a.crsID == b.crsID)
       return a.sectno < b.sectno;
