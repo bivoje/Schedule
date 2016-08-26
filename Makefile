@@ -1,5 +1,7 @@
 all: Schedule
 
-test: Schedule
+run: Schedule
 	./Schedule
 
+test: Tester
+	./Tester
