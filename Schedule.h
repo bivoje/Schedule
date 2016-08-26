@@ -70,4 +70,6 @@ private:
 public:
   Scheduler() {}
   ~Scheduler() {}
+
+  bool load_1sik(const string &openlects, const string &timetable);
 };
