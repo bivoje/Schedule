@@ -63,11 +63,16 @@ struct section_id_comp {
   }
 };
 
+crsid CrsidFromString(const string &str);
+
 class Scheduler {
 private:
   set<profess,profess_id_comp> whole_profess;
   set<course,course_id_comp> whole_courses;
   set<section,section_id_comp> whole_sections;
+
+  bool load_1sik_openlects(const string &openlects);
+  bool load_1sik_timetable(const string &timetable);
 
 public:
   Scheduler() {}

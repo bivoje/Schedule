@@ -1,11 +1,40 @@
+#include <cassert>
 #include "Schedule.h"
+#define FOR(n) for(int asdf=0; asdf<(n); asdf++)
 
-bool Scheduler::load_1sik(const string &openlects,
-                          const string &timetable)
+int stoi(const string& str)
+{
+  int x = 0;
+
+  for(int i=0; i<str.size(); i++)
+  {
+    if(str[i]<'0' || '9'<str[i]) break;
+    x*=10; x+=str[i]-'0';
+  } return x;
+}
+
+crsid CrsidFromString(const string &str)
+{
+  assert(str.size() == 6);
+
+  string label(str.begin(), str.begin()+2);
+  string code(str.begin()+2, str.end());
+
+  int inf = stoi(code);
+  int pre = 0;
+
+  //we can use string-int-map for this
+  if(label == "GS")
+    pre = 1;
+  else if(label == "EV")
+    pre = 2;
+
+  return pre*10000 + inf;
+}
+
+bool Scheduler::load_1sik_openlects(const string &openlects)
 {
   ifstream file;
-
-  //parse openlects--------------------------------
 
   //assume success
   file.open(openlects.c_str());
@@ -23,16 +52,20 @@ bool Scheduler::load_1sik(const string &openlects,
 
     file.ignore(100, '\t');
     file.ignore(100, '\t');
-    file.ignore(2);
-    file >> crs.id;           //crs id
-    file.ignore(100, '\n');
+    file.get(buff, 7);//crs id
+    crs.id = CrsidFromString(buff);
+    file.ignore(100, '\t');
+    file.ignore(100, '\t');
+    assert(file.get() == '"');
+    file.get(buff, 128, '\n');
+    assert(file.get() == '\n');
+    crs.title_kr = buff;      //crs title_kr
     file.get(buff, 128, '"');
     crs.title = buff;         //crs title
     file.ignore(100, '\t');
     file >> crs.credit;       //crs credit
     file.ignore(100, '\t');
-    if(file.peek() != '\t')
-    {
+    if(file.peek() != '\t') {
       file.get(buff, 128, '\t');
       prf.name = buff;        //prf name
     }
@@ -46,21 +79,17 @@ bool Scheduler::load_1sik(const string &openlects,
     file.ignore(100, '\t');
     file >> sec.capacity;
     file.ignore(100, '\t');
-    if(file.peek() != '\n' && file.peek() != '\t')
-    {                         //crs requir
-      while(1)
-      {
+    if(file.peek() != '\n' && file.peek() != '\t') {
+      while(1) {              //crs requir
         int no;
-        file.ignore(2);
-        file >> no;
+        file.get(buff, 7);
+        no = CrsidFromString(buff);
         crs.requir.push_back(no);
-        if(file.peek() == ' ')
-        {
+        if(file.peek() == ' ') {
           //more requirment
           file.ignore(100, ' ');
           file.ignore(100, ' ');
-        }
-        else break;
+        } else break;
       }
     } else crs.requir.clear();
     file.ignore(100, '\n');
@@ -75,15 +104,18 @@ bool Scheduler::load_1sik(const string &openlects,
 
   file.close();
 
-  //parse timetable--------------------------------
-
-  //assume success
-  file.open(timetable.c_str());
-
-  //assumes formatted
-
-
-
-
+  //assume always success
+  return true;
 }
 
+bool Scheduler::load_1sik_timetable(const string &timetable)
+{
+  return true;
+}
+
+bool Scheduler::load_1sik(const string &openlects,
+                          const string &timetable)
+{
+  load_1sik_openlects(openlects);
+  load_1sik_timetable(timetable);
+}
