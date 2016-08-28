@@ -27,9 +27,10 @@ struct profess
 
 struct course
 {
-  classify      clsf;
+  classify      clsf; //not supported
   crsid         id;
   string        title;
+  string        title_kr;
   int           credit;
   vector<crsid> requir;
 };
@@ -41,6 +42,7 @@ struct section
   string  profname;
   int     capacity;
   vector<lectime> lecture;
+  int room; //not supported
 };
 
 struct profess_id_comp {
