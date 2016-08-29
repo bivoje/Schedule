@@ -1,8 +1,7 @@
 #include <iostream>
 #include <cassert>
+#include <limits>
 #include "Schedule.h"
-
-#define FOR(n) for(int asdf=0; asdf<(n); asdf++)
 
 int stoi(const string& str)
 {
@@ -119,192 +118,235 @@ void parsing_tester1()
   }
 }
 
+struct _ROW
+{
+  crsid id;
+  string profname;
+  int sectno;
+  int room; //not supported yet
+};
+
+void printout(vector<_ROW> ROW[], int Rn, const int column[])
+{
+  for(int r=0; r<Rn; r++)
+  {
+    for(int field=1; field<4; field++)
+    {
+      for(int day=0; day<5; day++)
+      {
+        for(int c=0; c<column[day]; c++)
+        {
+          _ROW &cell = ROW[day][c + r*column[day]];
+          switch(field)
+          {
+          case 1: { //row 1
+            if(cell.id < 0) cout << "| " << flush;
+            else cout << cell.id << ' ' << flush;
+            break; }
+          case 2: { //row 2
+            if(cell.profname == "NONE") cout << "| " << flush;
+            else cout << cell.profname << ' ' << flush;
+            break; }
+          case 3: { //row 3
+            if(cell.sectno < 0) cout << "| " << flush;
+            else cout << cell.sectno << ' ' << flush;
+            break; }
+          default: assert(0);
+          }
+        }
+        cout << endl;
+      }
+    }
+    cout << endl;
+  }
+}
+
+bool parse_cell(ifstream &file, _ROW &cell, const int stat, const bool islast)
+{
+  char buff[128];
+
+  //data row
+  switch(stat)
+  {
+  case 1: {
+  //first row, crsid
+    if(file.peek() != '\n' && file.peek() != '\t')
+    {
+      file.get(buff, 7);
+      cell.id = CrsidFromString(buff);
+    }
+    else cell.id = -1;
+
+    //ignore double code
+    int drop = file.get();
+    while(drop == '/')
+    {
+      file.get(buff, 7);
+      drop = file.get();
+    }
+    assert(drop == '\t' || drop == '\n' );
+    break; }
+
+  case 2: {
+  //second row, profess
+  //no need
+    if(file.peek() != '\n' && file.peek() != '\t')
+    {
+      //if the cell is wraped with quot, for newline included
+      if(file.peek() == '"')
+      {
+        assert(file.get() == '"');
+        file.get(buff, 128, '"');
+        assert(file.get() == '"');
+      }
+      else
+      {
+        if(islast) file.get(buff, 128, '\n');
+        else file.get(buff, 128, '\t');
+      }
+      cell.profname = buff;
+    }
+    else cell.profname = "NONE";
+
+    int drop = file.get();
+    assert(drop == '\t' || drop == '\n' );
+    break; }
+
+  case 3: {
+  //third row, title - different from openlects
+  //extract the sectoin number
+    if(file.peek() != '\n' && file.peek() != '\t')
+    {
+      int sectno = 0;
+
+      //if the cell is wraped with quot, for newline included
+      if(file.peek() == '"')
+      {
+        assert(file.get() == '"');
+        while(file.peek() != '"')
+        {
+          if(file.get() == '(')
+          {
+            int next = file.peek();
+            if(next<'1' || '9'<next)
+              break;
+
+            file >> sectno;
+            break;
+          }
+        }
+        file.ignore(100, '"');
+      }
+      else
+      {
+        while(file.peek() != '\t')
+        {
+          if(file.get() == '(')
+          {
+            int next = file.peek();
+            if(next<'1' || '9'<next)
+              break;
+
+            file >> sectno;
+            break;
+          }
+        }
+      }
+
+      cell.sectno = sectno;
+    }
+    else cell.sectno = -1;
+
+    if(islast) file.ignore(100, '\n');
+    else file.ignore(100, '\t');
+    break; }
+
+    default: assert(0);
+  }
+}
+
+bool parse_row(ifstream &file, vector<_ROW> ROW[], const int stat, const int r, const int column[])
+{
+  //fourth row, room
+  //not supported yet, ignore all
+  //goto out of loop
+  if(stat == 4)
+  {
+    int drop = file.get();
+    while(drop != '\n')
+    {
+      if(drop == '"')
+        file.ignore(numeric_limits<int>::max(), '"');
+      drop = file.get();
+    }
+
+    return true;
+  }
+
+  //day of a week (MON ~ FRI)
+  for(int i=0; i<5; i++)
+  {
+    int Cn = column[i];
+    //a cell for each day (& time interval)
+    for(int x=0; x<Cn; x++)
+      parse_cell(file, ROW[i][x + r*Cn], stat,
+                 i == 5-1 && x == Cn-1);
+  }
+}
+
+bool parse_ROW(ifstream &file, vector<_ROW> ROW[], const int r, const int column[])
+{
+  //data row (1 ~ 4)
+  for(int dr = 1; dr<=4; dr++)
+  {
+    parse_row(file, ROW, dr, r, column);
+  }
+}
+
+bool parse_interval(ifstream &file, const int Rn, const int marg, const int column[])
+{
+  //data representing ROW (1 or 2)
+  vector<_ROW> ROW[5];
+
+  for(int i=0; i<5; i++)
+    ROW[i].resize(column[i]*Rn);
+
+
+  for(int r=0; r<Rn; r++)
+    parse_ROW(file, ROW, r, column);
+
+  //print out
+  cout << "-----------------------------------------------" << endl;
+  printout(ROW, Rn, column);
+
+  //drop margine
+  for(int a=0; a<marg; a++)
+    file.ignore(numeric_limits<int>::max(), '\n');
+}
+
 void parsing_tester2()
 {
   ifstream file;
+
+  //assume success
   file.open("ex_timetable");
 
-  set<crsid> tt[12][5];
-  char buff[128];
-
-  //assumes formatted
+  //assume formatted
   int column[5];
   for(int i=0; i<5; i++) file >> column[i];
+  file.ignore(100, '\n');
   int row[12];
   for(int j=0; j<12; j++) file >> row[j];
-  int rmarg[11];
+  file.ignore(100, '\n');
+  int rmarg[12];
   for(int j=0; j<11; j++) file >> rmarg[j];
-
+  rmarg[11] = 0;
   file.ignore(100, '\n');
 
-  //class(7), experiment(2), activity(3)
+  //12 time interval, class(7), experiment(2), activity(3)
   for(int j=0; j<12; j++)
   {
-    FOR(row[j])
-    {
-      vector<crsid> ROW[5];
-      for(int i=0; i<5; i++) ROW[i].resize(column[i]);
-
-      //first row, crsid
-      for(int i=0; i<5; i++)
-      {
-        for(int x=0; x<column[i]; x++)
-        {
-          //cout << '(' << file.peek() << ')' << flush;
-          if(file.peek() != '\n' && file.peek() != '\t')
-          {
-            crsid id;
-            file.get(buff, 7);
-            id = CrsidFromString(buff);
-            ROW[i][x] = id;
-            cout << id << ' ';
-          }
-          else cout << '|' << ' ';
-
-          int drop = file.get();
-          //double code
-          while(drop == '/')
-          {
-            file.get(buff, 7);
-            drop = file.get();
-          }
-          assert(drop == '\t' || drop == '\n' );
-        }
-
-        cout << '$' << endl;
-      }
-
-      //second row, profess
-      //no need
-      //file.getline(buff, 128); <- in case formatted better
-      for(int i=0; i<5; i++)
-      {
-        for(int x=0; x<column[i]; x++)
-        {
-          //cout << '(' << file.peek() << ')';
-          if(file.peek() != '\n' && file.peek() != '\t')
-          {
-            //if the cell is wraped with quot, since newline included
-            if(file.peek() == '"')
-            {
-              assert(file.get() == '"');
-              //file.ignore(100, '"');
-              file.get(buff, 128, '"');
-              cout << buff << ' ';
-              assert(file.get() == '"');
-            }
-            else
-            {
-              if(i == 5-1 && x == column[5-1]-1)
-                file.get(buff, 128, '\n');
-              else file.get(buff, 128, '\t');
-              cout << buff << ' ';
-            }
-          }
-          else cout << '|' << ' ';
-
-          int drop = file.get();
-          assert(drop == '\t' || drop == '\n' );
-        }
-
-        cout << '$' << endl;
-      }
-
-      //third row, title - different from openlects
-      //extract the sectoin number
-      for(int i=0; i<5; i++)
-      {
-        for(int x=0; x<column[i]; x++)
-        {
-          //cout << '(' << file.peek() << ')' << endl;
-          if(file.peek() != '\n' && file.peek() != '\t')
-          {
-            int sectno = 0;
-
-            //if the cell is wraped with quot, since newline included
-            if(file.peek() == '"')
-            {
-              assert(file.get() == '"');
-              while(file.peek() != '"')
-              {
-                if(file.get() == '(')
-                {
-                  int next = file.peek();
-                  if(next<'1' || '9'<next)
-                    break;
-
-                  file >> sectno;
-                  break;
-                }
-              }
-              file.ignore(100, '"');
-            }
-            else
-            {
-              while(file.peek() != '\t')
-              {
-                if(file.get() == '(')
-                {
-                  int next = file.peek();
-                  if(next<'1' || '9'<next)
-                    break;
-
-                  file >> sectno;
-                  break;
-                }
-              }
-            }
-
-            cout << sectno << ' ';
-          }
-          else cout << '|' << ' ';
-
-          //if(x!=column[i]) file.ignore(100, '\t');
-          //else file.ignore(100, '\n');
-          if(x == column[i]-1 && i == 5-1) file.ignore(100, '\n');
-          else file.ignore(100, '\t');
-        }
-
-        cout << '$' << endl;
-      }
-
-      //fourth row, Room
-      //not supported yet
-      //file.getline(buff, 128); <- in case formatted better
-      /*for(int i=0; i<5; i++) for(int x=0; x<column[i]; x++)
-      {
-        //if(file.peek() != '\t')
-        //{
-        //  //if the cell is wraped with quot, since newline included
-        //  if(file.peek() == '"')
-        //  {
-        //    assert(file.get() == '"');
-        //    file.ignore(100, '"');
-        //    assert(file.get() == '"');
-        //  }
-        //}
-
-        //if(x!=column[i]) file.ignore(100, '\t');
-        //else file.ignore(100, '\n');
-
-        if(x == column[i]-1 && i == 5-1) file.ignore(100, '\n');
-        else file.ignore(100, '\t');
-      }*/
-      int drop = file.get();
-      while(drop != '\n')
-      {
-        if(drop == '"')
-          file.ignore(1000000, '"');
-        drop = file.get();
-      }
-    }
-
-    //drop margine
-    if(j!=11)
-    {
-      FOR(rmarg[j])
-        file.ignore(1000000, '\n');
-    }
+    parse_interval(file, row[j], rmarg[j], column);
   }
 }
 
