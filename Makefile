@@ -1,3 +1,4 @@
+CXXFLAGS=-std=c++11
 all: Schedule
 
 run: Schedule
@@ -5,3 +6,4 @@ run: Schedule
 
 test: Tester
 	./Tester
+

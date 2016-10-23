@@ -9,12 +9,13 @@ enum classify { PEE };
 
 //lecture times on timetable
 enum lectime {
-  MON1, MON2, MON3, MON4, MON5, MON6, MON7,
-  TUE1, TUE2, TUE3, TUE4, TUE5, TUE6, TUE7,
-  WED1, WED2, WED3, WED4, WED5, WED6, WED7,
-  THU1, THU2, THU3, THU4, THU5, THU6, THU7,
-  FRI1, FRI2, FRI3, FRI4, FRI5, FRI6, FRI7,
-  EXP1, EXP2, ACT1, ACT2, ACT3,
+  MON1=  1, MON2, MON3, MON4, MON5, MON6, MON7,
+  TUE1= 11, TUE2, TUE3, TUE4, TUE5, TUE6, TUE7,
+  WED1= 21, WED2, WED3, WED4, WED5, WED6, WED7,
+  THU1= 31, THU2, THU3, THU4, THU5, THU6, THU7,
+  FRI1= 41, FRI2, FRI3, FRI4, FRI5, FRI6, FRI7,
+  EXP1=101, EXP2,
+  ACT1=111, ACT2, ACT3,
 };
 
 typedef int crsid;
@@ -68,7 +69,7 @@ crsid CrsidFromString(const string &str);
 class Scheduler {
 private:
   set<profess,profess_id_comp> whole_profess;
-  set<course,course_id_comp> whole_courses;
+  set< course, course_id_comp> whole_courses;
   set<section,section_id_comp> whole_sections;
 
   bool load_1sik_openlects(const string &openlects);

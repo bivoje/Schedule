@@ -3,17 +3,6 @@
 #include "Schedule.h"
 #define FOR(n) for(int asdf=0; asdf<(n); asdf++)
 
-int stoi(const string& str)
-{
-  int x = 0;
-
-  for(int i=0; i<str.size(); i++)
-  {
-    if(str[i]<'0' || '9'<str[i]) break;
-    x*=10; x+=str[i]-'0';
-  } return x;
-}
-
 crsid CrsidFromString(const string &str)
 {
   assert(str.size() == 6);
