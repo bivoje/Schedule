@@ -5,6 +5,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Function
 -- NOTICE every data type is deriving some typeclasses for debuging convenience, they the features of those (like show function for Show typeclass) should not be utilized
 
 -- for natural seasons
@@ -45,3 +46,21 @@ data Section =
           , lectime :: Set Lectime
           , room    :: RoomId
           } deriving Show
+
+-- Treating its primary keys (course id, section #) only
+newtype RefSect = RefSect Section
+
+instance Eq RefSect where
+  (RefSect a) == (RefSect b) =
+    ((==) `on` crsid) a b ||
+    ((==) `on` sectno) a b
+
+instance Ord RefSect where
+  (RefSect a) <= (RefSect b)
+    | ((>) `on` crsid) a b = False
+    | ((<) `on` crsid) a b = True
+    | otherwise = ((<=) `on` sectno) a b
+
+instance Show RefSect where
+  show (RefSect a) = "{crs = " ++ show (crsid a)
+    ++ ", sct = " ++ show (sectno a) ++ "}"
