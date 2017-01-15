@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import Data.Dates
+import Data.Aeson
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
@@ -64,3 +65,7 @@ instance Ord RefSect where
 instance Show RefSect where
   show (RefSect a) = "{crs = " ++ show (crsid a)
     ++ ", sct = " ++ show (sectno a) ++ "}"
+
+instance ToJSON RefSect where
+  toJSON (RefSect rs) =
+    object [ "crsid" .= crsid rs, "sectno" .= sectno rs ]
