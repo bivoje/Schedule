@@ -1,25 +1,384 @@
-11
-	Elective	GS1102		"일반물리학 및 연습 Ⅱ
-General Physics & Rec. Ⅱ"	3:1:3	김만원	비전임	1반	30	GS1101 or GS1103
-	Required/Elective	GS1001		"미적분학과 응용
-Single Variable Calculus and Applications"	3:1:3	황치옥	전임		30	
-	Elective	GS1102		"일반물리학 및 연습 Ⅱ
-General Physics & Rec. Ⅱ"	3:1:3	Corneliu Sochichiu	전임	2반	30	GS1101 or GS1103
-	Elective	GS1102		"일반물리학 및 연습 Ⅱ
-General Physics & Rec. Ⅱ"	3:1:3	문봉진	전임	3반	30	GS1101 or GS1103
-	Elective	GS1104		"고급일반물리학 및 연습 Ⅱ
-General Physics & Rec. Ⅱ -Honors"	3:1:3	Corneliu Sochichiu	전임		30	GS1101 or GS1103
-	Elective	GS1112		"일반물리학 실험 Ⅱ
+2016학년도 2학기 개설교과과정													
+													
+"학부(과)
+School"	"과목구분
+Classification"	과목번호 Course No.	"교과목명
+Course Title"	"강:실:학
+Hrs.:E.:Credits"	"담당교수
+Professor(s)"	"전임/비전임
+Full time/Part time"	"분반
+Section"	"정원
+Max. enrollment"	"선수과목
+Prerequisite"	강의 공유Double Code	"강의 공유
+대표 교과목 "	"재수강 
+예외여부"	"비고
+Remarks"
+기초교육학부	Required/Elective	GS1001	"미적분학과 응용
+Single Variable Calculus and Applications"	3:1:3	황치옥	전임		30					
+	Elective	GS1102	"일반물리학 및 연습 Ⅱ
+General Physics & Rec. Ⅱ"	3:1:3	김만원	비전임	1반	30	GS1101 or GS1103				
+	Elective	GS1102	"일반물리학 및 연습 Ⅱ
+General Physics & Rec. Ⅱ"	3:1:3	Corneliu Sochichiu	전임	2반	30	GS1101 or GS1103				
+	Elective	GS1102	"일반물리학 및 연습 Ⅱ
+General Physics & Rec. Ⅱ"	3:1:3	문봉진	전임	3반	30	GS1101 or GS1103				
+	Elective	GS1104	"고급일반물리학 및 연습 Ⅱ
+General Physics & Rec. Ⅱ -Honors"	3:1:3	Corneliu Sochichiu	전임		30	GS1101 or GS1103				
+	Elective	GS1112	"일반물리학 실험 Ⅱ
 General Physics Experiment Ⅱ"	0:2:1	"이성배
-(문세훈)"	전임	1반	20	
-	Required	GS1604		"영어 Ⅱ: 이공계 글쓰기 입문
+(문세훈)"	전임	1반	20					
+	Elective	GS1112	"일반물리학 실험 Ⅱ
+General Physics Experiment Ⅱ"	0:2:1	"이성배
+(문세훈)"	전임	2반	20					
+	Elective	GS1112	"일반물리학 실험 Ⅱ
+General Physics Experiment Ⅱ"	0:2:1	"이성배
+(문세훈)"	전임	3반	20					
+	Elective	GS1112	"일반물리학 실험 Ⅱ
+General Physics Experiment Ⅱ"	0:2:1	"이성배
+(문세훈)"	전임	4반	20					
+	Elective	GS1112	"일반물리학 실험 Ⅱ
+General Physics Experiment Ⅱ"	0:2:1	"이성배
+(문세훈)"	전임	5반	20					
+	Elective	GS1112	"일반물리학 실험 Ⅱ
+General Physics Experiment Ⅱ"	0:2:1	"이성배
+(문세훈)"	전임	6반	20					
+	Elective	GS1112	"일반물리학 실험 Ⅱ
+General Physics Experiment Ⅱ"	0:2:1	"이성배
+(문세훈)"	전임	7반	20					
+	Elective	GS1202	"일반화학 및 연습 Ⅱ
+General Chemistry & Rec. Ⅱ"	3:1:3	Li Jiaojie	전임	1반	30	GS1201 or GS1203				
+	Elective	GS1202	"일반화학 및 연습 Ⅱ
+General Chemistry & Rec. Ⅱ"	3:1:3	Li Jiaojie	전임	2반	30	GS1201 or GS1203				
+	Elective	GS1202	"일반화학 및 연습 Ⅱ
+General Chemistry & Rec. Ⅱ"	3:1:3	김경렬	비전임	3반	30	GS1201 or GS1203				
+	Elective	GS1204	"고급일반화학 및 연습 Ⅱ
+General Chemistry & Rec. Ⅱ -Honors"	3:1:3	김희준	비전임		30	GS1201 or GS1203				
+	Elective	GS1212	"일반화학실험 Ⅱ
+General Chemistry Experiment Ⅱ"	0:2:1	"서지원
+(조춘실)"	전임	1반	20	GS1201 or GS1203				
+	Elective	GS1212	"일반화학실험 Ⅱ
+General Chemistry Experiment Ⅱ"	0:2:1	"서지원
+(조춘실)"	전임	2반	20	GS1201 or GS1203				
+	Elective	GS1212	"일반화학실험 Ⅱ
+General Chemistry Experiment Ⅱ"	0:2:1	"서지원
+(조춘실)"	전임	3반	20	GS1201 or GS1203				
+	Elective	GS1212	"일반화학실험 Ⅱ
+General Chemistry Experiment Ⅱ"	0:2:1	"서지원
+(조춘실)"	전임	4반	20	GS1201 or GS1203				
+	Elective	GS1212	"일반화학실험 Ⅱ
+General Chemistry Experiment Ⅱ"	0:2:1	"서지원
+(조춘실)"	전임	5반	20	GS1201 or GS1203				
+	Elective	GS1212	"일반화학실험 Ⅱ
+General Chemistry Experiment Ⅱ"	0:2:1	"서지원
+(조춘실)"	전임	6반	20	GS1201 or GS1203				
+	Elective	GS1212	"일반화학실험 Ⅱ
+General Chemistry Experiment Ⅱ"	0:2:1	"서지원
+(조춘실)"	전임	7반	20	GS1201 or GS1203				
+	Required/Elective	GS1301	"생물학
+Biology"	3:0:3	Michael Ye	전임	1반	30					
+	Required/Elective	GS1301	"생물학
+Biology"	3:0:3	Michael Ye	전임	2반	30					
+	Required/Elective	GS1302	"인간 생물학
+Human Biology"	3:0:3	Michael Ye	전임	1반	30					
+	Required/Elective	GS1302	"인간 생물학
+Human Biology"	3:0:3	Michael Ye	전임	2반	30					
+	Required/Elective	GS1303	"고급일반생물학 Ⅰ
+General Biology Ⅰ -Honors"	3:0:3	조경래	전임		30					
+	Required/Elective	GS1311	"일반생물학실험
+General Biology Laboratory"	0:2:1	"조경래
+(김한아)"	전임	1반	12					
+	Required/Elective	GS1311	"일반생물학실험
+General Biology Laboratory"	0:2:1	"조경래
+(김한아)"	전임	2반	12					
+	Required/Elective	GS1311	"일반생물학실험
+General Biology Laboratory"	0:2:1	"조경래
+(김한아)"	전임	3반	14					
+	Required/Elective	GS1311	"일반생물학실험
+General Biology Laboratory"	0:2:1	"조경래
+(김한아)"	전임	4반	12					
+	Required/Elective	GS1311	"일반생물학실험
+General Biology Laboratory"	0:2:1	"조경래
+(김한아)"	전임	5반	14					
+	Required/Elective	GS1311	"일반생물학실험
+General Biology Laboratory"	0:2:1	"조경래
+(김한아)"	전임	6반	12					
+	Required/Elective	GS1311	"일반생물학실험
+General Biology Laboratory"	0:2:1	"조경래
+(김한아)"	전임	7반	14					
+	Required/Elective	GS1401	"컴퓨터 프로그래밍
+Computer Programming"	3:1:3	Kin Choong Yow	전임	1반	50					
+	Required/Elective	GS1401	"컴퓨터 프로그래밍
+Computer Programming"	3:1:3	Kin Choong Yow	전임	2반	25					
+	Required/Elective	GS1511	"글쓰기의 기초: 논리적 글쓰기
+Writing I: Logical Writing"	3:0:3	차미령	전임		30					
+	Required/Elective	GS1512	"글쓰기의 기초: 학술적 글쓰기
+Writing I: Academic Writing"	3:0:3	조성진	전임		30					
+	Required/Elective	GS1513	"글쓰기의 기초: 창의적 글쓰기
+Writing I: Creative Writing"	3:0:3	이수정	전임		30					
+	Required/Elective	GS1533	"심화 글쓰기: 비평적 글쓰기
+Writing II: Critical Writing "	3:0:3	차미령	전임		30					
+	Required/Elective	GS1601	"영어 Ⅰ: 신입생 영어
+English Ⅰ: Study Skills for Freshmen"	3:0:2	James Robertson	비전임	1반	20					
+	Required/Elective	GS1601	"영어 Ⅰ: 신입생 영어
+English Ⅰ: Study Skills for Freshmen"	3:0:2	Natasha Powell	비전임	2반	20					
+	Required/Elective	GS1601	"영어 Ⅰ: 신입생 영어
+English Ⅰ: Study Skills for Freshmen"	3:0:2	Lucas Howerter	비전임	3반	20					
+	Required/Elective	GS1603	"영어 Ⅰ: 발표와 토론
+English Ⅰ: Presentation and Discussion"	3:0:2	David Patrona	비전임	1반	20					
+	Required/Elective	GS1603	"영어 Ⅰ: 발표와 토론
+English Ⅰ: Presentation and Discussion"	3:0:2	Kristen Appruzzese	비전임	2반	20					
+	Required	GS1604	"영어 Ⅱ: 이공계 글쓰기 입문
+English Ⅱ: Introduction to Academic Writing in Science and Engineering"	3:0:2	David Patrona	비전임	1반	15	GS1601 or GS1603				
+	Required	GS1604	"영어 Ⅱ: 이공계 글쓰기 입문
+English Ⅱ: Introduction to Academic Writing in Science and Engineering"	3:0:2	Jennifer Manning	비전임	2반	15	GS1601 or GS1603				
+	Required	GS1604	"영어 Ⅱ: 이공계 글쓰기 입문
+English Ⅱ: Introduction to Academic Writing in Science and Engineering"	3:0:2	Shawnt Kazar	비전임	3반	15	GS1601 or GS1603				
+	Required	GS1604	"영어 Ⅱ: 이공계 글쓰기 입문
 English Ⅱ: Introduction to Academic Writing in Science and Engineering"	3:0:2	Ellis I. Lee	비전임	4반	15	GS1601 or GS1603				
-	Required	GS1604		"영어 Ⅱ: 이공계 글쓰기 입문
+	Required	GS1604	"영어 Ⅱ: 이공계 글쓰기 입문
 English Ⅱ: Introduction to Academic Writing in Science and Engineering"	3:0:2	Shawnt Kazar	비전임	5반	15	GS1601 or GS1603				
-	Required/Elective	GS2001		"다변수해석학과 응용
-Multivariable Calculus and Applications"	3:1:3		전임	1반	30	GS1001 or GS1011				담당교수 추후안내 (특정 분반으로 수강생 편중 방지
-	Required/Elective	GS2001		"다변수해석학과 응용
+	Required/Elective	GS2001	"다변수해석학과 응용
+Multivariable Calculus and Applications"	3:1:3		전임	1반	30	GS1001 or GS1011				
+	Required/Elective	GS2001	"다변수해석학과 응용
 Multivariable Calculus and Applications"	3:1:3		전임	2반	30	GS1001 or GS1011				
-	Required/Elective	GS2001		"다변수해석학과 응용
+	Required/Elective	GS2001	"다변수해석학과 응용
 Multivariable Calculus and Applications"	3:1:3		전임	3반	30	GS1001 or GS1011				
+	Required/Elective	GS2001	"다변수해석학과 응용
+Multivariable Calculus and Applications"	3:1:3		전임	4반	30	GS1001 or GS1011				
+	Required/Elective	GS2002	"미분방정식과 응용
+Differential Equations and Applications"	3:1:3		전임	1반	30	GS1001 or GS1011				
+	Required/Elective	GS2002	"미분방정식과 응용
+Differential Equations and Applications"	3:1:3		전임	2반	30	GS1001 or GS1011				
+	Required/Elective	GS2002	"미분방정식과 응용
+Differential Equations and Applications"	3:1:3		전임	3반	30	GS1001 or GS1011				
+	Required/Elective	GS2002	"미분방정식과 응용
+Differential Equations and Applications"	3:1:3		전임	4반	30	GS1001 or GS1011				
+	Required/Elective	GS2004	"선형대수학과 응용
+Introduction to Linear Algebra and Applications"	3:1:3		전임	1반	30	GS1001 or GS1011				
+	Required/Elective	GS2004	"선형대수학과 응용
+Introduction to Linear Algebra and Applications"	3:1:3		전임	2반	30	GS1001 or GS1011				
+	Required/Elective	GS2004	"선형대수학과 응용
+Introduction to Linear Algebra and Applications"	3:1:3		전임	3반	30	GS1001 or GS1011				
+	Elective	GS2102	"전자기학 및 연습 Ⅰ
+Electromagnetism & Rec. Ⅰ"	3:1:3	이성배	전임		30	GS1102 or GS1104				
+	Elective	GS2201	"유기화학 Ⅰ
+Organic Chemistry Ⅰ"	3:0:3	Li Jiaojie	전임		30	GS1202 or GS1204				
+	Elective	GS2202	"물리화학 Ⅰ
+Physical Chemistry Ⅰ"	3:0:3	임상현	전임		50					
+	Elective	GS2302	"분자생물학
+Molecular Biology"	3:0:3	심해홍	전임		40					
+	Elective	GS2303	"현대 생명과학의 이해
+Current Topics in Modern Life Sciences"	1:0:1	박성규	전임							
+	Elective	GS2401	"회로이론
+Electric Circuit Theory"	3:0:3	유남열	전임		30	GS1102 or GS1104				TA 1명
+	Elective	GS2402	"자료 구조 및 알고리즘
+Data Structure and Algorithm"	3:0:3	Kin Choong Yow	전임		30	GS1401				
+	Elective	GS2432	"컴퓨터이용 설계 및 생산
+Computer Aided Design and Manufacturing"	2:2:3	이용구	전임							
+	Elective	GS2433	"창의공학
+Creativity and Imagineering"	3:0:3	양동열	비전임		36					
+	Elective	GS2505	"고전시가의 이해
+Understanding Classical Korean Poetry"	3:0:3	조성진	전임		30					HUS
+	Elective	GS2506	"한국현대시인론
+Modern Korean Poets"	3:0:3	이수정	전임		30					HUS
+	Elective	GS2508	"이상(李箱)문학과 과학
+Yi Sang's Literature and Science"	3:0:3	이수정	전임		30					HUS
+	Elective	GS2509	"한국현대소설의 사회적 성찰
+Modern Korean Fiction and Social Reflection"	3:0:3	차미령	전임		30					HUS
+	Elective	GS2510	"한국고전문학과 사상
+Korean Classical Literature and Thoughts"	3:0:3	조성진	전임		30					HUS
+	Elective	GS2526	"문학과 연인들
+Lovers in Literature"	3:0:3		비전임		30					HUS
+	Elective	GS2542	"오페라와 판소리
+Opera and Pansori"	3:0:3	안혜선	비전임		30					GS
+	Elective	GS2543	"현대 예술의 이해
+Understanding Modern Art"	3:0:3	변기숙	비전임		30					GS
+	Elective	GS2602	"한국사의 이해
+Understanding Korean History"	3:0:3	김용덕	비전임		30					GS
+	Elective	GS2604	"현대 중국의 이해: 계몽, 혁명, 시장
+Understanding China Today: Enlightenment, Revolution, and Market"	3:0:3	이용주	전임		30					HUS
+	Elective	GS2612	"서양 고대와 중세 문명
+Classical and Medieval Civilizations in the West"	3:0:3	노경덕	전임		30					HUS
+	Elective	GS2616	"장기 19세기 서양 역사
+The West in the Long Nineteenth Century"	3:0:3	노경덕 	전임		30					HUS
+	Elective	GS2620	"철학의 근본 문제들
+Basic Problems of Philosophy"	3:0:3	원치욱	전임		30					PPE
+	Elective	GS2651	" 영어 토론과 논증
+ Debate and Argumentation for Scientists"	3:0:2	Kristen Appruzzese	비전임		20					
+	Elective	GS2661	"논리와 비판적 사고
+Logic and Critical Thinking"	3:0:3	원치욱	전임		30					PPE
+	Elective	GS2704	"기업과 사회
+Firm and Society"	3:0:3	장진호	전임		30					PPE
+	Elective	GS2706	"세계정치의 변환
+Transformations of World Politics"	3:0:3	장진호	전임		30					PPE
+	Elective	GS2733	"행동경제학 2
+Behavioral Economics 2"	3:0:3	김희삼	전임		20					PPE
+	Elective	GS2734	"행복의 조건
+Conditions of Happiness"	3:0:3	김희삼	전임		30					PPE
+	Elective	GS2742	"인간의 마음과 행동 1
+Human Mind and Human Behavior 1"	3:0:3	최원일	전임		30					PPE
+	Elective	GS2747	"인간관계의 심리학
+The Psychology of Human Relationships"	3:0:3	최원일	전임		30					PPE
+	Elective	GS2750	"경영학원론
+Principles of Management"	3:0:3	진규호	전임		30					PPE
+	Elective	GS2751	"전략경영
+Strategic Management"	3:0:3	진규호	전임		30					PPE
+	Elective	GS2763	"현대법학의 이해
+Understanding the Contemporary Law and Legal Studies"	3:0:3	김건우	전임		45					PPE
+	Elective	GS2781	"국제관계론 Ⅰ: 근대 국제정치체제의 상승과 쇠퇴
+International Relations Ⅰ: The Rise and Decline of the Modern State System"	3:0:3	박상섭	비전임		30					GS
+	Elective	GS2783	"과학기술과 전쟁
+Technology and War"	3:0:3	박상섭	비전임		30					GS
+	Elective	GS2791	"유라시아 깊이 읽기
+Reading Eurasia"	3:0:3	정진홍	전임		30					GS
+	Elective	GS2793	"커뮤니케이션론 Ⅱ
+Communication Theory Ⅱ"	3:0:3	정진홍	전임		30					GS
+	Elective	GS2803	"과학기술과 사회
+Science, Technology, and Society"	3:0:3	장진호	전임		30					PPE
+	Elective	GS2806	"우주와 생명
+Life in the Universe"	3:0:3	김희준	비전임		30					
+	Elective	GS2811	"인간과 바다
+Man and the Ocean"	3:0:3	김경렬	비전임		30					
+	Elective	GS2816	"문화공학 Ⅱ
+Culture Engineering Ⅱ"	3:0:3	정진홍	전임		30					GS
+	Elective	GS2818	"융합사고론
+Mash-up Thinking"	3:0:3	정진홍	전임		30					GS
+	Elective	GS2819	"이미지론: 보는 법
+On Image: Ways of Seeing"	3:0:3	정진홍	전임		30					GS
+	Elective	GS2931	"독일어 1
+German 1"	2:0:2	민춘기	비전임		30					GS
+	Elective	GS3602	"역사학 특강
+Topics in History"	3:0:3	김용덕	비전임		15					"GS/ 
+3, 4학년 수강"
+	Elective	GS3603	"서양사 자료의 비판과 해석
+Interpreting Historical Sources: Western Experience"	3:0:3	노경덕	전임		20					HUS
+	Elective	GS3622	"20세기 철학의 주제들 2
+Philosophical Issues in the Twentieth Century 2"	3:0:3	이용주	전임		20					HUS
+	Elective	GS3633	"서양 현대 철학 강독
+Studies in Contemporary Western Philosophy"	3:0:3	원치욱	전임		20					PPE
+	Elective	GS3651	"영어 3 : 이공계 논문쓰기
+English III: Undrgraduate Research Writing in Science and Engineering"	3:0:2	Natasha Powell	비전임		15	GS1604				
+	Elective	GS3762	"현대법사상 강독
+Reading the Classics of Contemporary Legal Thoughts"	3:0:3	김건우	전임		20					PPE
+	Elective	GS3861	"신경과학과 법
+Neuroscience and Law"	3:0:3	김건우	전임		30					PPE
+	Elective	GS4002	"복소함수학 및 응용
+Complex Analysis and Applications"	3:0:3	송정민	전임		30	GS2001				
+	Elective	GS4007	"기하학 I
+Geometry I"	3:0:3	강현석	전임		30	GS2001				
+	Elective	GS4009	"그래프 이론
+Graph Theory"	3:0:3	최정옥	전임		30		Y(EC4207)	GS4009		
+	Elective	GS4015	"과학계산
+Scientific Computing"	3:0:3	황치옥	전임		30	GS2002 or GS2004	Y(PH5107)	GS4015		
+	Required	GS0101	"축구 
+Soccer"	2:0:0	서문학	비전임	1반	22				Y	
+	Required	GS0101	"축구 
+Soccer"	2:0:1	서문학	비전임	2반	22				Y	
+	Required	GS0102	"테니스 
+Tennis"	2:0:0	조영복	비전임	1반	15				Y	
+	Required	GS0102	"테니스 
+Tennis"	2:0:0	조영복	비전임	2반	15				Y	
+	Required	GS0102	"테니스 
+Tennis"	2:0:0	조영복	비전임	3반	15				Y	
+	Required	GS0103	"농구 
+Basketball"	2:0:0	배영종	비전임	1반	17				Y	1학년
+	Required	GS0103	"농구 
+Basketball"	2:0:0	배영종	비전임	2반	17				Y	2학년
+	Required	GS0103	"농구 
+Basketball"	2:0:0	배영종	비전임	3반	17				Y	3학년
+	Required	GS0104	"배드민턴 
+Badminton"	2:0:0	이기정	비전임	1반	15				Y	
+	Required	GS0104	"배드민턴 
+Badminton"	2:0:0	이기정	비전임	2반	15				Y	
+	Required	GS0104	"배드민턴 
+Badminton"	2:0:0	이기정	비전임	3반	15				Y	
+	Required	GS0105	"탁구 
+Table Tennis"	2:0:0	손향숙	비전임	1반	12				Y	
+	Required	GS0105	"탁구 
+Table Tennis"	2:0:0	손향숙	비전임	2반	12				Y	
+	Required	GS0105	"탁구 
+Table Tennis"	2:0:0	손향숙	비전임	3반	12				Y	
+	Required	GS0106	"요가 
+Yoga"	2:0:0	이현화	비전임	1반	15				Y	
+	Required	GS0106	"요가 
+Yoga"	2:0:0	이현화	비전임	2반	15				Y	
+	Required	GS0106	"요가 
+Yoga"	2:0:0	이현화	비전임	3반	15				Y	
+	Required	GS0107	"골프 
+Golf"	2:0:0	박장진	비전임	1반	15				Y	
+	Required	GS0107	"골프 
+Golf"	2:0:0	박장진	비전임	2반	15				Y	
+	Required	GS0108	"힙합댄스 
+Hiphop Dance"	2:0:0	미정	비전임	1반	15				Y	
+	Required	GS0108	"힙합댄스 
+Hiphop Dance"	2:0:0	미정	비전임	2반	15				Y	
+	Required	GS0109	"태권도 
+Taekwondo"	2:0:0	정재영	비전임	1반	15				Y	
+	Required	GS0109	"태권도 
+Taekwondo"	2:0:0	정재영	비전임	2반	15				Y	
+	Required	GS0110	"헬스 
+Fitness"	2:0:0	미정	비전임	1반	15				Y	
+	Required	GS0110	"헬스 
+Fitness"	2:0:0	미정	비전임	2반	15				Y	
+	Required	GS0111	"풋살 
+Futsal"	2:0:0	하용서	비전임		15				Y	
+	Required	GS0112	"수영 
+Swimming"	2:0:0	김영민	비전임	1반	15				Y	
+	Required	GS0112	"수영 
+Swimming"	2:0:0	김영민	비전임	2반	15				Y	
+	Required	GS0113	"볼링 
+Bowling"	2:0:0	조상용	비전임	1반	15				Y	
+	Required	GS0113	"볼링 
+Bowling"	2:0:0	조상용	비전임	2반	15				Y	
+	Required	GS0114	"야구 
+Baseball"	2:0:0	정경운	비전임		15				Y	
+	Required	GS0201	"피아노 
+Piano"	2:0:0	안혜선	비전임	1반	15				Y	
+	Required	GS0201	"피아노 
+Piano"	2:0:0	안혜선	비전임	2반	15				Y	
+	Required	GS0201	"피아노 
+Piano"	2:0:0	안혜선	비전임	3반	15				Y	
+	Required	GS0202	"플룻 
+Flute"	2:0:0	김보라	비전임	1반	15				Y	
+	Required	GS0202	"플룻 
+Flute"	2:0:0	김보라	비전임	2반	15				Y	
+	Required	GS0203	"바이올린 
+Violin"	2:0:0	김혜영	비전임	1반	15				Y	
+	Required	GS0203	"바이올린 
+Violin"	2:0:0	김혜영	비전임	2반	15				Y	
+	Required	GS0204	"첼로 
+Cello"	2:0:0	양윤선	비전임		15				Y	
+	Required	GS0205	"클라리넷 
+Clarinet"	2:0:0	박소희	비전임		15				Y	
+	Required	GS0206	"어쿠스틱기타 
+Acoustic Guitar"	2:0:0	서주완	비전임	1반	15				Y	
+	Required	GS0206	"어쿠스틱기타 
+Acoustic Guitar"	2:0:0	한근식	비전임	2반	15				Y	
+	Required	GS0206	"어쿠스틱기타 
+Acoustic Guitar"	2:0:0	한근식	비전임	3반	15				Y	
+	Required	GS0206	"어쿠스틱기타 
+Acoustic Guitar"	2:0:0	한근식	비전임	4반	15				Y	
+	Required	GS0207	"일렉기타 
+Electric Guitar"	2:0:0	손성훈	비전임	1반	15				Y	
+	Required	GS0207	"일렉기타 
+Electric Guitar"	2:0:0	손성훈	비전임	2반	15				Y	
+	Required	GS0208	"베이스기타 
+Bass Guitar"	2:0:0	박영렬	비전임		15				Y	
+	Required	GS0209	"드럼 
+Drum"	2:0:0	우재식	비전임	1반	15				Y	
+	Required	GS0209	"드럼 
+Drum"	2:0:0	우재식	비전임	2반	15				Y	
+	Required	GS0210	"보컬 
+Vocal"	2:0:0	장진형	비전임	1반	8				Y	
+	Required	GS0210	"보컬 
+Vocal"	2:0:0	장진형	비전임	2반	8				Y	
+	Required	GS0210	"보컬 
+Vocal"	2:0:0	장진형	비전임	3반	8				Y	
+	Required	GS0211	"드로잉 
+Drawing"	2:0:0	윤해옥	비전임	1반	12				Y	
+	Required	GS0211	"드로잉 
+Drawing"	2:0:0	윤해옥	비전임	2반	12				Y	
+	Required	GS0212	"수채화 
+Watercolor"	2:0:0	윤해옥	비전임	1반	12				Y	
+	Required	GS0212	"수채화 
+Watercolor"	2:0:0	윤해옥	비전임	2반	12				Y	
 
