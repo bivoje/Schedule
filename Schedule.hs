@@ -7,6 +7,7 @@ import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Function
+
 -- NOTICE every data type is deriving some typeclasses for debuging convenience, they the features of those (like show function for Show typeclass) should not be utilized
 
 -- for natural seasons
@@ -28,13 +29,22 @@ data Lectime = Lectime WeekDay Int deriving Show
 -- FIXME got better idea for roomid format?
 type RoomId = T.Text
 
-data Prof = Prof T.Text RoomId deriving Show
+data Prof =
+  Prof { prof_name   :: T.Text
+       , prof_roomid :: RoomId
+       , prof_full   :: Bool -- whether full or part time
+       } deriving Show
+
+data School = EECS deriving Show
 
 data Course =
-  Course { id       :: Crsid
+  Course { crs_id   :: Crsid
+         , school   :: School
          , clsf     :: Classify
          , title    :: T.Text
          , title_kr :: T.Text
+      -- , hrs      :: Int
+      -- , e        :: Int
          , credit   :: Int
          , requir   :: Crsid
          , semester :: Semester
@@ -45,7 +55,8 @@ data Section =
           , sectno  :: Int
           , prof    :: Prof
           , lectime :: Set Lectime
-          , room    :: RoomId
+          , roomid  :: RoomId
+          , enroll_size :: Int
           } deriving Show
 
 -- Treating its primary keys (course id, section #) only
