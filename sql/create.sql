@@ -6,12 +6,14 @@ CREATE TABLE room (
 CREATE TABLE professor (
   name NVARCHAR(50) NOT NULL PRIMARY KEY,
   roomid VARCHAR(10) NULL REFERENCES room (room_id)
+  full BOOL NULL,
     -- ON DELETE 
     -- ON UPDATE 
 );
 
 CREATE TABLE course (
   crs_id CHAR(6) NOT NULL PRIMARY KEY,
+  school CHAR(4) NOT NULL CHECK (school IN ('EECS')), -- yet to add more
   classify CHAR(2) NOT NULL CHECK (classify IN ('EE')), -- yet to add more
   title VARCHAR(100) NOT NULL UNIQUE,
   title_kr NVARCHAR(100) NOT NULL UNIQUE,
@@ -25,6 +27,7 @@ CREATE TABLE section (
   crsid CHAR(6) NOT NULL REFERENCES course (crs_id),
   prof NVARCHAR(50) NOT NULL REFERENCES professor (name),
   room VARCHAR(10) NOT NULL REFERENCES room (room_id),
+  enroll_size SMALLINT NOT NULL UNSIGNED,
   CONSTRAINT PRIMARY KEY (crsid, sect_no)
 );
 
