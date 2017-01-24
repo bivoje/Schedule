@@ -44,7 +44,7 @@ title _ = cell `sepBy` tab
         >>= return . length
 
 -- read content of a table, ignore worthless footer
-content num = school num
+content num = fmap concat $ many1 (school num)
 
 -- read a category of school like (기초교육학부)
 school num = do
