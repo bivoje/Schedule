@@ -3,6 +3,7 @@ CREATE TABLE room (
   -- something to add?
 );
 
+-- ASSUME this table for granted, since the infomation of professors not provided
 CREATE TABLE professor (
   name NVARCHAR(50) NOT NULL PRIMARY KEY,
   roomid VARCHAR(10) NULL REFERENCES room (room_id)
@@ -19,7 +20,11 @@ CREATE TABLE course (
   title_kr NVARCHAR(100) NOT NULL UNIQUE,
   credit TINYINT NOT NULL,
   semester TINYINT NOT NULL CHECK (0 < semester AND semester < 5),
-  requir CHAR(6) NULL REFERENCES course (crs_id)
+  --requir 1, 2, 3 will be filled sequentially
+  --assume there be not more than 3 requir
+  requir1 CHAR(6) NULL REFERENCES course (crs_id) CHECK (requir1 IS NULL AND requir2 IS NULL)
+  requir2 CHAR(6) NULL REFERENCES course (crs_id) CHECK (requir2 IS NULL AND requir3 IS NULL)
+  requir3 CHAR(6) NULL REFERENCES course (crs_id)
 );
 
 CREATE TABLE section (
