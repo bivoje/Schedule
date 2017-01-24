@@ -16,8 +16,10 @@ data Season = Spring | Summer | Fall | Winter deriving Show
 -- Semester {year seaon}
 data Semester = Semester Int Season deriving Show
 
+data School = GS | PS | CH | BS | EC | MC | MA | EV
+
 -- FIXME this format ignores prefix (GS in GS2254)
-type Crsid = Int
+type Crsid = Crsid School Int
 
 -- TODO yet to add more classifications of courses
 data Classify = PPE | Nill deriving Show
@@ -35,18 +37,15 @@ data Prof =
        , prof_full   :: Bool -- whether full or part time
        } deriving Show
 
-data School = EECS deriving Show
-
 data Course =
   Course { crs_id   :: Crsid
-         , school   :: School
          , clsf     :: Classify
          , title    :: T.Text
          , title_kr :: T.Text
       -- , hrs      :: Int
       -- , e        :: Int
          , credit   :: Int
-         , requir   :: Crsid
+         , requir   :: [Crsid] -- the list elements composed by OR
          , semester :: Semester
          } deriving Show
 
