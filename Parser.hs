@@ -18,6 +18,7 @@ import Text.Parsec.Token
 --    it can be extended in case of need
 
 -- The only public method of this module
+-- FIXME readFile might produce an exception
 parse_openlects file = readFile file >>= return . parse openlects file
 
 
@@ -29,19 +30,23 @@ followedBy :: Stream s m Char
            => ParsecT s u m t -> a -> ParsecT s u m a
 followedBy p a = p >> return a
 
+
 -- read openlects file
 openlects = table
 
 -- read whole table, returns its content
-table = header >>= title >>= content
+table = do
+  hd <- header
+  tl <- title
+  ct <- content (length tl)
+  return $ hd : tl : ct
 
 -- read heading of table (name of table etc..) returns ()
-header = count 2 $ cell >>= followedBy (many tab >> newline)
+header = count 2 $ cell >>= followedBy (many tab >> newline) >> return []
 
 -- read titles of column, returns number of columns
-title _ = cell `sepBy` tab
+title = cell `sepBy` tab
         >>= followedBy newline
-        >>= return . length
 
 -- read content of a table, ignore worthless footer
 content num = fmap concat $ many1 (school num)
