@@ -1,8 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+import System.IO
 import Data.Char
 import Control.Exception
 import Control.Monad.Trans.Except
+import Control.Monad
 import Database.MySQL.Simple
 import Text.Parsec.Error
 import Parser
@@ -16,11 +18,34 @@ instance Exception ParseError where
 tryE :: Exception e => IO a -> ExceptT e IO a
 tryE = ExceptT . try
 
--- some characters that might violate the table contents
--- name fields containing these characters should be handled manually
-compatibleChar :: Char -> Bool
-compatibleChar c = all (/=c) ("\n|\t" :: [Char])
-                && (not $ isControl c)
+
+-- prompts user to type in arbitrary number of lines
+-- exit prompt by giving empty line
+-- returns the collection of lines
+promptLinesOf :: (String -> Bool) -> IO [String]
+promptLinesOf check = do
+  str <- getLine
+  proc str
+  where proc str | null str  = return []
+                 | check str = fmap (str:) $ promptLinesOf check
+                 | otherwise = putStrLn "***Error: not aceptable"
+                                >> promptLinesOf check
+
+
+-- check string that might violate the table contents
+-- not compatible name fields should be edited manually
+isFieldCompatible :: String -> Bool
+isFieldCompatible [] = False
+isFieldCompatible (s:tr) =
+  isLetter s && all (\c -> isLetter c || c==' ') tr
+
+-- loose version of above. (allow leading single space)
+-- space starting names are for TAs.
+-- used to check user's manual edit
+isFieldCompatible' :: String -> Bool
+isFieldCompatible' (' ':tr) = isFieldCompatible tr
+isFieldCompatible' str = isFieldCompatible str
+
 
 -- access info to localhost root
 mydefaultConnectInfo :: ConnectInfo
@@ -30,46 +55,40 @@ mydefaultConnectInfo =
                      }
 
 
--- actually excutes the insert query to db
--- returns 0 or 1, the number of row inserted
-exInsertProf :: Connection -> String -> IO Int
-exInsertProf conn name =
-  handle f $ execute conn insertq (Only name) >> return 1
-  -- duplicated insert exception will be caught
-  where
-    insertq = "INSERT INTO professor (name) VALUES (?)"
-    f :: SomeException -> IO Int
-    f = const (return 0)
+-- merely excutes the insert query to db
+exInsertTmpProf :: Connection -> (String,String) -> IO ()
+exInsertTmpProf conn n =
+  execute conn insertq n >> return ()
+  where insertq = "INSERT INTO tmp_professor (name,names) VALUES (?,?)"
 
--- if name field contains violation characters, the user 
--- will be prompted to insert the names by manual
--- returns the number of rows inserted
-promptName conn =
-  getLine >>= (\name -> if null name then return 0 else prmt name)
-  where
-    prmt str = do
-      n <- exInsertProf conn str
-      m <- promptName conn
-      return $ n + m
+
+-- check whether db know the name already
+checkTmpProfExist :: Connection -> String -> IO Bool
+checkTmpProfExist conn name = do
+  [Only num] <- query conn selq (Only name)
+  return $ num /= (0 :: Int)
+  where selq = "SELECT COUNT(name) FROM tmp_professor WHERE name = ?"
+
+
+-- if name field is not compatible,
+-- user will be prompted to type in names manually
+-- concats names with leading '|' (professor) or '!' (TA)
+refineTmpProf :: String -> IO String
+refineTmpProf str =
+  if (isFieldCompatible str) then return ('|':str)
+  else do
+    putStrLn ("manual insert required with \"" ++ str ++ "\"")
+    names <- promptLinesOf isFieldCompatible'
+    return $ foldr fusion [] names
+  where fusion (' ':s) acc = '!' : s ++ acc
+        fusion      s  acc = '|' : s ++ acc
+
 
 -- extract professor name from a row, then insert it to db
 -- returns the number of inserted rows (of db)
-insertProf :: Connection -> [String] -> IO Int
-insertProf conn strs =
-  --let name = takeWhile compatibleChar $ strs !! 5
-  let name = strs !! 5
-   in if all compatibleChar name
-      then exInsertProf conn name
-      else putStrLn ("manual insert required with \"" ++ name)
-           >> promptName conn
-
--- read openlects and insert professor info of each row to database
--- FIXME still no understands why :: Exception e => ExceptT e IO ()
--- can't work here
-insertProfs :: ExceptT ParseError IO ()
-insertProfs = do
-  tbl <- ExceptT $ parse_openlects "ex_openlects"
-  conn <- tryE (connect mydefaultConnectInfo)
-  exts <- tryE (mapM (insertProf conn) (drop 2 tbl))
-  tryE (close conn)
-  tryE $ print $ sum exts
+insertTmpProf :: Connection -> [String] -> IO ()
+insertTmpProf conn strs = do
+   name <- return $ strs !! 5
+   rfname <- refineTmpProf name
+   dbknows <- (checkTmpProfExist conn name)
+   when (not dbknows) $ exInsertTmpProf conn (name,rfname)
