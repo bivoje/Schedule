@@ -98,7 +98,7 @@ exInsertTmpProf conn n =
 -- concats names with leading '|' (professor) or '!' (TA)
 refineTmpProf :: String -> IO String
 refineTmpProf str =
-  if (isFieldCompatible str) then return $ show (PR str)
+  if (isFieldCompatible str) then return $ show [PR str]
   else do
     putStrLn ("manual insert required with \"" ++ str ++ "\"")
     names <- promptLinesOf isFieldCompatible'
