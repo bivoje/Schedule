@@ -1,8 +1,9 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Parser (parse_openlects) where
+module Parser (parse_openlects,word) where
 
+import Data.Char (isSpace)
 import Data.List (intercalate)
 import Text.Parsec
 import Text.Parsec.Token
@@ -30,6 +31,7 @@ followedBy :: Stream s m Char
            => ParsecT s u m t -> a -> ParsecT s u m a
 followedBy p a = p >> return a
 
+word = between spaces spaces $ many1 (satisfy $ not.isSpace)
 
 -- read openlects file
 openlects = table
