@@ -1,7 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Data.List (transpose)
-import Data.Char (isLetter)
+import Data.List
+import Data.Char
+import Data.Function (on)
+import Data.Bool (bool)
 import Control.Exception
 import Control.Monad.Trans.Except
 import Control.Monad (when,guard)
@@ -10,6 +12,7 @@ import Database.MySQL.Simple
 import Database.MySQL.Simple.QueryParams (QueryParams)
 import qualified Text.Parsec as P
 
+import qualified Parser as P
 
 -- make ParserError as instance of Exception
 -- to use it with other errors in ExceptT monad
@@ -19,6 +22,12 @@ instance Exception P.ParseError where
 
 tryE :: Exception e => IO a -> ExceptT e IO a
 tryE = ExceptT . try
+
+
+
+----------------------------------------------------------------------
+-- insert Professor
+
 
 
 -- prompts user to type in arbitrary number of lines
@@ -159,14 +168,92 @@ insertProfs conn tbl = do
     \ );"
 
 
+
+----------------------------------------------------------------------
+-- insert Course
+
+
+
+omitSpan :: (a -> Bool) -> [a] -> ([a],[a])
+omitSpan f ls = case span f ls of (as,c:bs) -> (as,bs)
+                                  x         -> x
+
+
+boolMaybe :: (a -> Bool) -> a -> Maybe a
+boolMaybe f a = guard (f a) >> return a
+
+
+takeWhileEnd :: (a -> Bool) -> [a] -> [a]
+takeWhileEnd f = reverse . takeWhile f . reverse
+
+
+requirParse :: String -> Either P.ParseError [String]
+requirParse s = P.parse p "" s
+  where p = P.sepBy P.word (P.string "또는" P.<|> P.string "or")
+
+
+exInsertCourse :: Connection
+               -> (String,String,String,Int
+                  ,Int,Maybe String,Maybe String,Maybe String)
+               -> IO Bool
+exInsertCourse conn args@(ii,_,_,_,_,_,_,_) =
+  executeIfNone conn "course" "crs_id" (Only ii) insq args
+  where insq = "\
+    \ INSERT INTO \
+    \   course (crs_id, title, title_kr, credit, \
+    \   semester, requir1, requir2, requir3) \
+    \ VALUES (?,?,?,?,?,?,?,?) \
+    \ ;"
+
+
+insertCourse :: Connection
+             -> (String,String,String,String,String)
+             -> IO Bool
+-- school (sch) value is aready in crs, we don't need it
+-- also, we don't utilize classify (cls) yet
+insertCourse conn (crs,_,tlt',cre',req') =
+  let (tkr'',tlt'') = omitSpan (/='\n') tlt'
+      tlt = refine tlt''
+      tkr = strip tkr''
+      cre = read $ takeWhileEnd (/=':') cre' :: Int
+      -- FIXME this should be able to set manually
+      sme = 216
+      -- ignore parsing error
+      reqs = case requirParse req' of Right ls -> ls ++ ["","",""]
+      rqs = map (boolMaybe $ not.null) reqs
+      rq1 = rqs !! 0
+      rq2 = rqs !! 1
+      rq3 = rqs !! 2
+   in exInsertCourse conn (crs,tlt,tkr,cre,sme,rq1,rq2,rq3)
+  where strip = lstrip . reverse . lstrip . reverse
+        lstrip = dropWhile isSpace
+        refine = strip . map sub
+        sub c | isAscii c = c
+              | otherwise = case c of
+                  'Ⅱ' -> '2'
+                  'Ⅰ' -> '1'
+                  _   -> error $ '"' : (show c) ++ "\""
+
+
+insertCourses :: Connection -> [[String]] -> IO Int
+insertCourses conn tbl =
+  -- (crs_id, classify, title', credit', requir')
+  let contbl = drop 2 tbl
+      nubtbl = map head $ groupBy ((==) `on` (!!3)) contbl
+      tups = map (\s -> (s!!2,s!!1,s!!3,s!!4,s!!9)) nubtbl
+      num = length tups
+   in fmap (sum . map (bool 0 1)) $ mapM (insertCourse conn) tups
+
+
 -- read openlects and insert professor info of each row to database
 -- FIXME still no understands why :: Exception e => ExceptT e IO ()
 -- can't work here
-run :: ExceptT ParseError IO ()
+run :: ExceptT P.ParseError IO ()
 run = do
   tryE $ hSetBuffering stdin LineBuffering
   conn <- tryE $ connect mydefaultConnectInfo
-  tbl <- ExceptT $ parse_openlects "ex_openlects"
+  tbl <- ExceptT $ P.parse_openlects "ex_openlects"
   num <- tryE $ insertProfs conn tbl
+  tryE $ insertCourses conn tbl
   tryE (close conn)
   tryE $ print num
