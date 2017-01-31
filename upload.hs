@@ -3,6 +3,7 @@
 import Data.List
 import Data.Char
 import Data.Function (on)
+import Data.Tuple (swap)
 import Data.Bool (bool)
 import Control.Exception
 import Control.Monad.Trans.Except
@@ -196,6 +197,20 @@ requirParse s = P.parse p "" s
   where p = P.sepBy P.word (P.string "또는" P.<|> P.string "or")
 
 
+-- gets the strings to insert db from parsed one
+refineTlts :: String -> (String,String)
+refineTlts tlt' = let (tkr,tlt) = omitSpan (/='\n') tlt'
+                   in (strip . map sub $ tlt, strip tkr)
+  where
+    lstrip = dropWhile isSpace
+    strip = lstrip . reverse . lstrip . reverse
+    sub c | isAscii c = c
+              | otherwise = case c of
+                  'Ⅱ' -> '2'
+                  'Ⅰ' -> '1'
+                  _   -> error $ '"' : (show c) ++ "\""
+
+
 -- merely excutes the insert query to db
 exInsertCourse :: Connection
                -> (String,String,String,Int
@@ -218,9 +233,7 @@ insertCourse :: Connection
 -- school (sch) value is aready in crs, we don't need it
 -- also, we don't utilize classify (cls) yet
 insertCourse conn (crs,_,tlt',cre',req') =
-  let (tkr'',tlt'') = omitSpan (/='\n') tlt'
-      tlt = refine tlt''
-      tkr = strip tkr''
+  let (tlt,tkr) = refineTlts tlt'
       cre = read $ takeWhileEnd (/=':') cre' :: Int
       -- FIXME this should be able to set manually
       sme = 216
@@ -231,14 +244,6 @@ insertCourse conn (crs,_,tlt',cre',req') =
       rq2 = rqs !! 1
       rq3 = rqs !! 2
    in exInsertCourse conn (crs,tlt,tkr,cre,sme,rq1,rq2,rq3)
-  where strip = lstrip . reverse . lstrip . reverse
-        lstrip = dropWhile isSpace
-        refine = strip . map sub
-        sub c | isAscii c = c
-              | otherwise = case c of
-                  'Ⅱ' -> '2'
-                  'Ⅰ' -> '1'
-                  _   -> error $ '"' : (show c) ++ "\""
 
 
 -- top level of inserting to table 'course'
