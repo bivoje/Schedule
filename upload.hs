@@ -16,7 +16,6 @@ import qualified Parser as P
 
 -- make ParserError as instance of Exception
 -- to use it with other errors in ExceptT monad
--- see insertProfs function
 instance Exception P.ParseError where
 
 
@@ -130,7 +129,7 @@ insertTmpProf conn name = do
                           exInsertTmpProf conn (name,rfname)
 
 
--- insert Teach data to db according to it's position
+-- insert Teach data to db according to it's position (prof/ta ..)
 exInsertTeach :: Connection -> Teach -> IO ()
 exInsertTeach conn teach = (case teach of
   (PR s) -> insertNameIfNone conn "professor" s
@@ -153,9 +152,12 @@ mvTmpToProfs conn = do
   where selq = "SELECT names FROM tmp_professor"
 
 
+-- top level of inserting to table 'professor'
 -- insert names of professors (and TAs!) to db,
 -- also leaves name conversion cache table (tmp_professor)
 -- for use of another (course, section ..) parsing
+-- FIXME supossed to return the number of names inserted..
+-- but it doesn't match
 insertProfs :: Connection -> [[String]] -> IO Int
 insertProfs conn tbl = do
   execute_ conn createq
@@ -174,6 +176,7 @@ insertProfs conn tbl = do
 
 
 
+-- span, omits the separator
 omitSpan :: (a -> Bool) -> [a] -> ([a],[a])
 omitSpan f ls = case span f ls of (as,c:bs) -> (as,bs)
                                   x         -> x
@@ -187,11 +190,13 @@ takeWhileEnd :: (a -> Bool) -> [a] -> [a]
 takeWhileEnd f = reverse . takeWhile f . reverse
 
 
+-- parse the 'requir' field
 requirParse :: String -> Either P.ParseError [String]
 requirParse s = P.parse p "" s
   where p = P.sepBy P.word (P.string "또는" P.<|> P.string "or")
 
 
+-- merely excutes the insert query to db
 exInsertCourse :: Connection
                -> (String,String,String,Int
                   ,Int,Maybe String,Maybe String,Maybe String)
@@ -206,6 +211,7 @@ exInsertCourse conn args@(ii,_,_,_,_,_,_,_) =
     \ ;"
 
 
+-- insert single course, with given (unchecked) tuple data of strings
 insertCourse :: Connection
              -> (String,String,String,String,String)
              -> IO Bool
@@ -235,6 +241,9 @@ insertCourse conn (crs,_,tlt',cre',req') =
                   _   -> error $ '"' : (show c) ++ "\""
 
 
+-- top level of inserting to table 'course'
+-- does not depend on tmp_professor
+-- returns the number of courses inserted
 insertCourses :: Connection -> [[String]] -> IO Int
 insertCourses conn tbl =
   -- (crs_id, classify, title', credit', requir')
