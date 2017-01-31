@@ -20,12 +20,12 @@ CREATE TABLE IF NOT EXISTS ta (
 
 
 CREATE TABLE IF NOT EXISTS course (
-  classify CHAR(2) NOT NULL CHECK (classify IN ('EE')), -- yet to add more
   crs_id CHAR(6) NOT NULL PRIMARY KEY CHECK (
     (SUBSTRING(crs_id,1,2) IN
         ('GS','PS','CH','BS','EC','MC','MA','EV'))
     AND (SUBSTRING(crs_id,3) REGEXP '^\d{4}$')
   ),
+  -- classify CHAR(2) NOT NULL CHECK (classify IN ('EE')),
   title VARCHAR(100) NOT NULL UNIQUE,
   title_kr NVARCHAR(100) NOT NULL UNIQUE,
   credit TINYINT NOT NULL,
