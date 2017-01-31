@@ -23,11 +23,11 @@ CREATE TABLE IF NOT EXISTS course (
   crs_id CHAR(6) NOT NULL PRIMARY KEY CHECK (
     (SUBSTRING(crs_id,1,2) IN
         ('GS','PS','CH','BS','EC','MC','MA','EV'))
-    AND (SUBSTRING(crs_id,3) REGEXP '^\d{4}$')
+    AND (SUBSTRING(crs_id,3) REGEXP '^[0-9]{4}$')
   ),
   -- classify CHAR(2) NOT NULL CHECK (classify IN ('EE')),
-  title VARCHAR(100) NOT NULL UNIQUE,
-  title_kr NVARCHAR(100) NOT NULL UNIQUE,
+  title VARCHAR(100) NOT NULL,
+  title_kr NVARCHAR(100) NOT NULL,
   credit TINYINT NOT NULL,
   -- semester = season (1|2|3|4) * 100 + year (last 2)
   -- 2017 Summer -> 2 * 100 + 17 = 217
