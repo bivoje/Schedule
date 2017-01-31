@@ -1,18 +1,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import System.IO
-import Data.Char
+import Data.List (transpose)
+import Data.Char (isLetter)
 import Control.Exception
 import Control.Monad.Trans.Except
-import Control.Monad
+import Control.Monad (when,guard)
+import System.IO
 import Database.MySQL.Simple
-import Text.Parsec.Error
-import Parser
+import Database.MySQL.Simple.QueryParams (QueryParams)
+import qualified Text.Parsec as P
+
 
 -- make ParserError as instance of Exception
 -- to use it with other errors in ExceptT monad
 -- see insertProfs function
-instance Exception ParseError where
+instance Exception P.ParseError where
 
 
 tryE :: Exception e => IO a -> ExceptT e IO a
@@ -110,9 +112,8 @@ refineTmpProf str =
 -- FIXME should we handle Exception here?
 -- extract professor name from a row, then insert it to db
 -- returns the number of inserted rows (of db)
-insertTmpProf :: Connection -> [String] -> IO ()
-insertTmpProf conn strs = do
-  name <- return $ strs !! 5
+insertTmpProf :: Connection -> String -> IO ()
+insertTmpProf conn name = do
   dbknows <- (checkNameExist conn "tmp_professor" name)
   when (not dbknows) $ do rfname <- refineTmpProf name
                           exInsertTmpProf conn (name,rfname)
@@ -141,7 +142,7 @@ mvTmpToProfs conn = do
 insertProfs :: Connection -> [[String]] -> IO Int
 insertProfs conn tbl = do
   execute_ conn createq
-  mapM (insertTmpProf conn) (drop 2 tbl)
+  mapM (insertTmpProf conn) $ transpose (drop 2 tbl) !! 5
   mvTmpToProfs conn
   where createq = "\
     \ CREATE TEMPORARY TABLE tmp_professor ( \
