@@ -68,24 +68,26 @@ mydefaultConnectInfo =
 -- (Only) string literals can be intepreted as Query type
 -- because variables (QeuryParams) are quoted automatically
 -- (e.f user-inputs inevitably be quoted. very clever)
-checkNameExist :: Connection -> Query -> String -> IO Bool
-checkNameExist conn tbl name = do
-  [Only num] <- query conn selq (Only name)
+checkKeyInDB :: QueryParams q
+             => Connection -> Query -> Query -> q -> IO Bool
+checkKeyInDB conn tbl key val = do
+  [Only num] <- query conn selq val
   return $ num /= (0 :: Int)
-  where selq = "SELECT COUNT(name) FROM " `mappend` tbl `mappend` " WHERE name = ?"
+  where selq = mconcat ["SELECT COUNT(", key, ") FROM ", tbl, " WHERE ", key, "= ?"]
 
 
 -- insert name to db if there's no pre-inserted
 -- prevent sql-error exceptions
 -- FIXME this might be not appropriate if the name field is
 -- not primary key anymore
-insertNameIfNone :: Connection -> Query -> String -> IO ()
-insertNameIfNone conn tbl str = do
-  dbknows <- checkNameExist conn tbl str
+executeIfNone :: (QueryParams q1, QueryParams q2)
+             => Connection -> Query -> Query -> q1
+             -> Query -> q2 -> IO Bool
+executeIfNone conn tbl key val exq p = do
+  dbknows <- checkKeyInDB conn tbl key val
   when (not dbknows) $
-    execute conn exq (Only str)
-    >> return ()
-  where exq = "INSERT INTO " `mappend` tbl `mappend` "(name) VALUES (?)"
+    execute conn exq p >> return ()
+  return (not dbknows)
 
 
 -- merely excutes the insert query to db
@@ -114,7 +116,7 @@ refineTmpProf str =
 -- returns the number of inserted rows (of db)
 insertTmpProf :: Connection -> String -> IO ()
 insertTmpProf conn name = do
-  dbknows <- (checkNameExist conn "tmp_professor" name)
+  dbknows <- (checkKeyInDB conn "tmp_professor" "name" (Only name))
   when (not dbknows) $ do rfname <- refineTmpProf name
                           exInsertTmpProf conn (name,rfname)
 
@@ -125,6 +127,12 @@ exInsertTeach conn teach = (case teach of
   (PR s) -> insertNameIfNone conn "professor" s
   (TA s) -> insertNameIfNone conn "ta" s
   ) >> return ()
+  where
+    insertNameIfNone conn tbl str =
+      let exq = mconcat ["INSERT INTO ", tbl, "(name) VALUES (?)"]
+          nameParam = (Only str)
+       in executeIfNone conn tbl "name" nameParam exq nameParam
+
 
 
 -- assume tmp_proff exist, move the data from - to prof, ta db
