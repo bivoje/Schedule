@@ -22,7 +22,7 @@ data School = GS | PS | CH | BS | EC | MC | MA | EV
 type Crsid = Crsid School Int
 
 -- TODO yet to add more classifications of courses
-data Classify = PPE | Nill deriving Show
+-- data Classify = PPE | Nill deriving Show
 
 -- Lectime {Monday 3} : third lecture time on Monday
 data Lectime = Lectime WeekDay Int deriving Show
@@ -39,7 +39,7 @@ data Prof =
 
 data Course =
   Course { crs_id   :: Crsid
-         , clsf     :: Classify
+      -- , clsf     :: Classify
          , title    :: T.Text
          , title_kr :: T.Text
       -- , hrs      :: Int
