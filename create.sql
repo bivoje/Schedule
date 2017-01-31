@@ -20,13 +20,18 @@ CREATE TABLE IF NOT EXISTS ta (
 
 
 CREATE TABLE IF NOT EXISTS course (
-  crs_id CHAR(6) NOT NULL PRIMARY KEY,
-  school CHAR(4) NOT NULL CHECK (school IN ('EECS')), -- yet to add more
   classify CHAR(2) NOT NULL CHECK (classify IN ('EE')), -- yet to add more
+  crs_id CHAR(6) NOT NULL PRIMARY KEY CHECK (
+    (SUBSTRING(crs_id,1,2) IN
+        ('GS','PS','CH','BS','EC','MC','MA','EV'))
+    AND (SUBSTRING(crs_id,3) REGEXP '^\d{4}$')
+  ),
   title VARCHAR(100) NOT NULL UNIQUE,
   title_kr NVARCHAR(100) NOT NULL UNIQUE,
   credit TINYINT NOT NULL,
-  semester TINYINT NOT NULL CHECK (0 < semester AND semester < 5),
+  -- semester = season (1|2|3|4) * 100 + year (last 2)
+  -- 2017 Summer -> 2 * 100 + 17 = 217
+  semester SMALLINT NOT NULL CHECK (100 <= semester AND semester < 500),
   /* requir 1, 2, 3 will be filled sequentially
      assume there be not more than 3 requir */
   requir1 CHAR(6) NULL REFERENCES course (crs_id),
