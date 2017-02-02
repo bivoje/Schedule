@@ -5,6 +5,7 @@ import Data.Char
 import Data.Function (on)
 import Data.Tuple (swap)
 import Data.Bool (bool)
+import Data.Maybe (listToMaybe)
 import Control.Exception
 import Control.Monad.Trans.Except
 import Control.Monad (when,guard)
@@ -259,6 +260,108 @@ insertCourses conn tbl =
    in fmap (sum . map (bool 0 1)) $ mapM (insertCourse conn) tups
 
 
+
+----------------------------------------------------------------------
+-- insert Section
+
+
+type Good = ExceptT String IO ()
+
+infix 0 <~~
+
+--(<~~) :: Monad m => m Bool -> String -> Good
+(<~~) :: IO Bool -> String -> Good
+mb <~~ str = ExceptT $ do
+  b <- mb
+  return $ if b then Right () else Left str
+
+nope :: Monad m => m Bool -> m Bool
+nope = fmap not
+
+isGood :: Either String () -> Bool
+isGood (Right ()) = True
+isGood (Left _) = False
+
+{-
+instance Eq Teach where
+  (PR x) == (PR y) = x == y
+  (TA x) == (TA y) = x == y
+  _ == _ = False
+
+instance Ord Teach where
+  (PR x) <= (PR y) = x <= y
+  (TA x) <= (TA y) = x <= y
+  (PR _) <= (TA _) = False
+  (TA _) <= (PR _) = True
+-}
+
+getProfFromTmp :: Connection -> String -> IO (Maybe String, Maybe String)
+getProfFromTmp conn str = do
+  -- unique tmp_prof existence vertified from insertSect
+  -- FIXME isn't this inefficient?
+  [Only names] <- query conn selq (Only str)
+  ts <- return.read $ names :: IO [Teach]
+  case ts of []             -> return (Nothing, Nothing)
+             [PR pr]        -> return (Just pr, Nothing)
+             [TA _]         -> error "only ta??"
+             [PR pr, TA ta] -> return (Just pr, Just ta)
+             [TA ta, PR pr] -> return (Just pr, Just ta)
+             _ -> promptTeachers ts
+
+  where
+    selq = "SELECT names FROM tmp_professor WHERE name = ?"
+    promptTeachers ts = do
+      putStrLn $ "prompt for \"" ++ str ++ "\""
+      putStr "pr: "
+      pr <- getLine
+      putStr "ta: "
+      ta <- getLine
+      return (boolMaybe (not.null) pr, boolMaybe (not.null) ta)
+
+
+exInsertSect :: Connection -> Int -> (String,String,String,String) -> IO ()
+-- we can check secn (int) with sectno (string) but we don't..
+exInsertSect conn secn (_,crsid,prof',enrol') =
+  let enrol = fmap fst . listToMaybe $ (reads enrol' :: [(Int,String)])
+  in do
+    (prof,ta) <- getProfFromTmp conn prof'
+    execute conn insq (secn,crsid,prof,ta,enrol)
+    return ()
+  where insq = "\
+    \ INSERT INTO \
+    \   section (sect_no, crsid, prof, ta, enroll_size) \
+    \ VALUES (?,?,?,?,?); \
+    \ "
+
+
+insertSectGrp :: Connection -> [(String,String,String,String)] -> IO ()
+insertSectGrp conn grps@((_,crsid,prof,_):_) =
+  let isdup = checkKeyInDB conn "section" "crsid" $ Only crsid
+      iscrs = checkKeyInDB conn "course" "crs_id" $ Only crsid
+      isprf = checkKeyInDB conn "tmp_professor" "name" $ Only prof
+      scrsid = '(' : show crsid ++ ")"
+      sprof = '(' : show prof ++ ")"
+      ready = do
+        nope isdup <~~ "there's section of same crsid " ++ scrsid
+        iscrs      <~~ "there's no such crsid " ++ scrsid
+        isprf      <~~ "there's no such prof " ++ sprof
+      ex = mapM_ (uncurry $ exInsertSect conn) $ zip [1..] grps
+   in do r <- runExceptT ready
+         when (isGood r) ex
+
+
+--FIXME
+--insertSect :: Connection -> [[String]] -> IO Int
+insertSect :: Connection -> [[String]] -> IO ()
+insertSect conn tbl =
+  -- (sect#, crsid, prof(ta), enroll)
+  let contbl = drop 2 tbl
+      tups = map (\s -> (s!!7,s!!2,s!!5,s!!8)) contbl
+      gtups = groupBy ((==) `on` snd4) tups
+   in mapM_ (insertSectGrp conn) gtups
+  where snd4 (_,b,_,_) = b
+
+
 -- read openlects and insert professor info of each row to database
 -- FIXME still no understands why :: Exception e => ExceptT e IO ()
 -- can't work here
@@ -267,7 +370,7 @@ run = do
   tryE $ hSetBuffering stdin LineBuffering
   conn <- tryE $ connect mydefaultConnectInfo
   tbl <- ExceptT $ P.parse_openlects "ex_openlects"
-  num <- tryE $ insertProfs conn tbl
+  tryE $ insertProfs conn tbl
   tryE $ insertCourses conn tbl
+  tryE $ insertSect conn tbl
   tryE (close conn)
-  tryE $ print num
