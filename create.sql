@@ -44,9 +44,11 @@ CREATE TABLE IF NOT EXISTS course (
 CREATE TABLE IF NOT EXISTS section (
   sect_no TINYINT NOT NULL,
   crsid CHAR(6) NOT NULL REFERENCES course (crs_id),
-  prof NVARCHAR(50) NOT NULL REFERENCES professor (name),
-  room VARCHAR(10) NOT NULL REFERENCES room (room_id),
-  enroll_size SMALLINT NOT NULL,
+  -- prof/ta might not be determined by the time the list released
+  prof NVARCHAR(50) NULL REFERENCES professor (name),
+  ta NVARCHAR(50) NULL REFERENCES ta (name),
+  room VARCHAR(10) NULL REFERENCES room (room_id),
+  enroll_size SMALLINT NULL,
   CONSTRAINT PRIMARY KEY (crsid, sect_no)
 );
 
