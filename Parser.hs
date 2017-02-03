@@ -8,6 +8,11 @@ import Data.List (intercalate)
 import Text.Parsec
 import Text.Parsec.Token
 
+
+-------------------------------------------------------------------
+-- Openlects
+
+
 -- NOTICE
 -- some modification required before copying!
 -- 1. there should be no double quote charactor (") within excel file
@@ -18,23 +23,9 @@ import Text.Parsec.Token
 -- 2. a file assumed to have only one school category.
 --    it can be extended in case of need
 
--- The only public method of this module
+
 -- FIXME readFile might produce an exception
-parse_openlects file = readFile file >>= return . parse openlects file
-
-
--- some parser combinators
-except :: Stream s m Char => Char -> ParsecT s u m [Char]
-except c = many $ satisfy (/=c) 
-
-followedBy :: Stream s m Char
-           => ParsecT s u m t -> a -> ParsecT s u m a
-followedBy p a = p >> return a
-
-word = between spaces spaces $ many1 (satisfy $ not.isSpace)
-
--- read openlects file
-openlects = table
+parse_openlects file = readFile file >>= return . parse table file
 
 -- read whole table, returns its content
 table = do
@@ -70,9 +61,23 @@ row num = do
   <?> "row"
 
 
+-------------------------------------------------------------------
+-- Primary
+
+
 -- ::[Char]
 -- read each cell of a row
 cell =
+  -- FIXME this can't handle escaped " (\") in the string
   try (between (char '"') (char '"') (except '"'))
   <|> many (noneOf "\t\n")
   <?> "cell"
+
+followedBy :: Stream s m Char
+           => ParsecT s u m t -> a -> ParsecT s u m a
+followedBy p a = p >> return a
+
+word = between spaces spaces $ many1 (satisfy $ not.isSpace)
+
+except :: Stream s m Char => Char -> ParsecT s u m [Char]
+except c = many $ satisfy (/=c)
