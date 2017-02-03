@@ -362,6 +362,65 @@ insertSect conn tbl =
   where snd4 (_,b,_,_) = b
 
 
+
+----------------------------------------------------------------------
+-- insert Room
+
+
+
+-- datatype used to deal with parsed data of timetable
+-- vertical block of cell
+type Vcell = (String,String,String,String)
+-- Vcells in single period of a day,
+-- table[time_period][day]
+type Vcells = [Vcell]
+-- Vcells in a period of many day
+type Pcell = [Vcells]
+-- all the Vcells
+type Pcells = [Pcell]
+-- Vcells in a day
+type Dcell = [Vcells]
+-- all the Vcells
+type Dcells = [Dcell]
+
+
+-- filters out empty Vcell from table
+-- doesn't matter whether Pcells / Dcells
+filterEmpty :: [[Vcells]] -> [[Vcells]]
+filterEmpty = map (map (filter filterf))
+  where filterf (a,_,_,_) = not $ null a
+
+
+-- get the sect number from the name field of vcell
+getSectno :: String -> Int
+getSectno str =
+  case dropWhile (/='(') str of
+    '(':xs -> read $ takeWhile isNumber xs
+    [] -> 1
+
+
+-- merely excutes the query to db
+-- (room, crsid, sectno)
+exInsertRoom :: Connection -> (String,String,Int) -> IO ()
+exInsertRoom conn tup =
+  print tup >>
+  execute conn updq tup >> return ()
+  where updq = "\
+    \ UPDATE section \
+    \ SET room = ? \
+    \ WHERE crsid = ? AND sect_no = ? \
+    \;"
+
+-- update table 'section' with room the infomation
+insertRooms :: Connection -> Pcells -> IO ()
+insertRooms conn pcells =
+  let vcells = filterNoRoom . concat . concat $ pcells
+   in mapM_ (exInsertRoom conn . g) vcells
+  where filterNoRoom = filter f
+        f (_,_,_,d) = not $ null d
+        g (a,b,c,d) = (d,a,getSectno(c))
+
+
 -- read openlects and insert professor info of each row to database
 -- FIXME still no understands why :: Exception e => ExceptT e IO ()
 -- can't work here
@@ -369,8 +428,10 @@ run :: ExceptT P.ParseError IO ()
 run = do
   tryE $ hSetBuffering stdin LineBuffering
   conn <- tryE $ connect mydefaultConnectInfo
-  tbl <- ExceptT $ P.parse_openlects "ex_openlects"
-  tryE $ insertProfs conn tbl
-  tryE $ insertCourses conn tbl
-  tryE $ insertSect conn tbl
+  --opl_tbl <- ExceptT $ P.parse_openlects "ex_openlects"
+  --tryE $ insertProfs   conn opl_tbl
+  --tryE $ insertCourses conn opl_tbl
+  --tryE $ insertSect    conn opl_tbl
+  tmt_tbl <- ExceptT $ P.parse_timetable "ex_timetable"
+  tryE $ insertRooms   conn tmt_tbl
   tryE (close conn)
