@@ -1,12 +1,6 @@
-CREATE TABLE IF NOT EXISTS room (
-  room_id VARCHAR(10) NOT NULL PRIMARY KEY
-  -- something to add?
-);
-
--- ASSUME this table for granted, since the infomation of professors not provided
 CREATE TABLE IF NOT EXISTS professor (
   name NVARCHAR(50) NOT NULL PRIMARY KEY,
-  roomid VARCHAR(10) NULL REFERENCES room (room_id),
+  office CHAR(10) NULL,
   full TINYINT(1) NULL,
   email NVARCHAR(255) NULL
     -- ON DELETE 
