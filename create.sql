@@ -47,7 +47,10 @@ CREATE TABLE IF NOT EXISTS section (
 );
 
 CREATE TABLE IF NOT EXISTS class (
-  sectno TINYINT NOT NULL REFERENCES section (sect_no),
+  crsid CHAR(6) NOT NULL,
+  sectno TINYINT NOT NULL,
   day CHAR(3) NOT NULL CHECK (day IN ('MON','TUE','WED','THU','FRI','SAT','SUN')),
-  CONSTRAINT PRIMARY KEY (sectno, day)
+  period TINYINT NOT NULL,
+  CONSTRAINT PRIMARY KEY (crsid, sectno, day, period),
+  CONSTRAINT FOREIGN KEY (crsid,sectno) REFERENCES section (crsid,sect_no)
 );
