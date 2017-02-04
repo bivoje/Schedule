@@ -421,6 +421,39 @@ insertRooms conn pcells =
         g (a,b,c,d) = (d,a,getSectno(c))
 
 
+
+----------------------------------------------------------------------
+-- insert TimeTable
+
+
+
+exInsertTmt :: Connection -> (String,Int,String, Int) -> IO ()
+exInsertTmt conn arg =
+  print arg >>
+  execute conn insq arg >> return ()
+  where insq = "\
+    \ INSERT INTO \
+    \   class (crsid,sectno,day,period) \
+    \ VALUES (?,?,?,?) \
+    \;"
+
+
+insertVcells :: Connection -> Int -> Int -> Vcells -> IO ()
+insertVcells conn np nd vcells =
+  let days = ["MON", "TUE", "WED", "THR", "FRI", "SAT", "SUN"]
+      d = days !! (nd-1)
+      p = np
+   in mapM_ (exInsertTmt conn . insvc p d) vcells
+  where insvc p d (a,_,c,_) = (a,getSectno(c),d,p)
+
+
+insertTmts :: Connection -> Pcells -> IO ()
+insertTmts conn pcells =
+  mapM_ (uncurry insp) $ zip [1..] (filterEmpty pcells)
+  where insp p pcell =
+          mapM_ (uncurry $ insertVcells conn p) $ zip [1..] pcell
+
+
 -- read openlects and insert professor info of each row to database
 -- FIXME still no understands why :: Exception e => ExceptT e IO ()
 -- can't work here
@@ -434,4 +467,5 @@ run = do
   --tryE $ insertSect    conn opl_tbl
   tmt_tbl <- ExceptT $ P.parse_timetable "ex_timetable"
   tryE $ insertRooms   conn tmt_tbl
+  tryE $ insertTmts    conn tmt_tbl
   tryE (close conn)
