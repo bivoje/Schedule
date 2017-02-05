@@ -1,29 +1,27 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Data.List
+module Uploader
+  ( mydefaultConnectInfo
+  , insertProfs
+  , insertCourses
+  , insertSect
+  , insertRooms
+  , insertTmts
+  )
+  where
+
+import Data.List (transpose, groupBy)
 import Data.Char
 import Data.Function (on)
-import Data.Tuple (swap)
 import Data.Bool (bool)
 import Data.Maybe (listToMaybe)
-import Control.Exception
 import Control.Monad.Trans.Except
 import Control.Monad (when,guard)
-import System.IO
 import Database.MySQL.Simple
 import Database.MySQL.Simple.QueryParams (QueryParams)
 import qualified Text.Parsec as P
 
-import qualified Parser as P
-
--- make ParserError as instance of Exception
--- to use it with other errors in ExceptT monad
-instance Exception P.ParseError where
-
-
-tryE :: Exception e => IO a -> ExceptT e IO a
-tryE = ExceptT . try
-
+import qualified Parser as P (word)
 
 
 ----------------------------------------------------------------------
@@ -452,20 +450,3 @@ insertTmts conn pcells =
   mapM_ (uncurry insp) $ zip [1..] (filterEmpty pcells)
   where insp p pcell =
           mapM_ (uncurry $ insertVcells conn p) $ zip [1..] pcell
-
-
--- read openlects and insert professor info of each row to database
--- FIXME still no understands why :: Exception e => ExceptT e IO ()
--- can't work here
-run :: ExceptT P.ParseError IO ()
-run = do
-  tryE $ hSetBuffering stdin LineBuffering
-  conn <- tryE $ connect mydefaultConnectInfo
-  --opl_tbl <- ExceptT $ P.parse_openlects "ex_openlects"
-  --tryE $ insertProfs   conn opl_tbl
-  --tryE $ insertCourses conn opl_tbl
-  --tryE $ insertSect    conn opl_tbl
-  tmt_tbl <- ExceptT $ P.parse_timetable "ex_timetable"
-  tryE $ insertRooms   conn tmt_tbl
-  tryE $ insertTmts    conn tmt_tbl
-  tryE (close conn)
