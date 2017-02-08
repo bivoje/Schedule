@@ -16,10 +16,14 @@ import Data.Bool (bool)
 import Data.Maybe (listToMaybe)
 import Control.Monad.Trans.Except
 import Control.Monad (when,guard)
+import Control.Exception
+import System.IO.Error
 import Database.MySQL.Simple
 import Database.MySQL.Simple.QueryParams (QueryParams)
+import Database.MySQL.Base (MySQLError(..))
 
 import Parser (parse_requir)
+import Prompt
 
 
 ----------------------------------------------------------------------
@@ -88,11 +92,33 @@ executeIfNone conn tbl key val exq p = do
   return (not dbknows)
 
 
--- merely excutes the insert query to db
-exInsertTmpProf :: Connection -> (String,String) -> IO ()
-exInsertTmpProf conn n =
-  execute conn insertq n >> return ()
-  where insertq = "INSERT INTO che_professor (name,names) VALUES (?,?)"
+-- handle MySQLError exception
+handleInsert :: (QueryParams q, Show q) => (q -> IO Bool) -> q -> Int -> IO Bool
+handleInsert act q 1062 = do
+      putStrLn $ "dupkey error occured while inserting " ++ show q
+      putStr "as you want, (retry/continue(skip)/halt(quit)):"
+      ans <- getAnsWithin "please answer in (r/c/h): " ["r", "c", "h"]
+      case ans of 0 -> exInsertHandler act q
+                  1 -> return False
+                  2 -> throw $ userError "halt during inserting tmp prof"
+
+
+-- excute given (probably inserting query) io action
+-- if MySQLError occurs, handle it
+exInsertHandler :: (QueryParams q, Show q)
+                => (q -> IO Bool) -> q -> IO Bool
+exInsertHandler act q =
+  catchJust f (act q) (handleInsert act q)
+  where
+    f e = let enum = errNumber e in if enum == 1062 then Just enum else Nothing
+
+
+-- merely excutes the insert query to db with error handling
+exInsertTmpProf :: Connection -> (String,String) -> IO Bool
+exInsertTmpProf conn q =
+  exInsertHandler (\n -> execute conn insq n >> return True) q
+  where
+    insq = "INSERT INTO che_professor (name,names) VALUES (?,?)"
 
 
 -- if name field is not compatible,
@@ -109,49 +135,49 @@ refineTmpProf str =
         conv      s  = PR s
 
 
--- FIXME should we handle Exception here?
 -- extract professor name from a row, then insert it to db
 -- returns the number of inserted rows (of db)
-insertTmpProf :: Connection -> String -> IO ()
+insertTmpProf :: Connection -> String -> IO Bool
 insertTmpProf conn name = do
   dbknows <- (checkKeyInDB conn "che_professor" "name" (Only name))
-  when (not dbknows) $ do rfname <- refineTmpProf name
-                          exInsertTmpProf conn (name,rfname)
+  if dbknows then return False else do
+    rfname <- refineTmpProf name
+    exInsertTmpProf conn (name,rfname)
 
 
 -- insert Teach data to db according to it's position (prof/ta ..)
-exInsertTeach :: Connection -> Teach -> IO ()
-exInsertTeach conn teach = (case teach of
-  (PR s) -> insertNameIfNone conn "professor" s
-  (TA s) -> insertNameIfNone conn "ta" s
-  ) >> return ()
+exInsertTeach :: Connection -> Teach -> IO Bool
+exInsertTeach conn teach = case teach of
+  (PR s) -> insertNameIfNone "professor" s
+  (TA s) -> insertNameIfNone "ta" s
   where
-    insertNameIfNone conn tbl str =
-      let exq = mconcat ["INSERT INTO ", tbl, "(name) VALUES (?)"]
-          nameParam = (Only str)
-       in executeIfNone conn tbl "name" nameParam exq nameParam
+    insertNameIfNone tbl str =
+      let insq = mconcat ["INSERT INTO ", tbl, "(name) VALUES (?)"]
+          p = (Only str)
+       in exInsertHandler (\q -> execute conn insq q >> return True) p
 
 
-
--- assume che_proff exist, move the data from - to prof, ta db
+-- move the data from - to prof, ta db
 mvTmpToProfs :: Connection -> IO Int
 mvTmpToProfs conn = do
+  -- FIXME should i handle this?
   snamess <- query_ conn selq
-  let names = concat (map (read.fromOnly) snamess :: [[Teach]])
-   in mapM_ (exInsertTeach conn) names >> return (length names)
+  names <- return $ concatMap (read.fromOnly) snamess :: IO [Teach]
+  bs <- mapM (exInsertTeach conn) names
+  return . length $ filter id bs
   where selq = "SELECT names FROM che_professor"
 
 
 -- top level of inserting to table 'professor'
 -- insert names of professors (and TAs!) to db,
--- also leaves name conversion cache table (che_professor)
--- for use of another (course, section ..) parsing
--- FIXME supossed to return the number of names inserted..
--- but it doesn't match
+-- also fills up cache table name conversion (che_professor)
+-- for use of another (course, section ..) task
 insertProfs :: Connection -> [[String]] -> IO Int
 insertProfs conn tbl = do
-  mapM (insertTmpProf conn) $ transpose (drop 2 tbl) !! 5
+  bs <- mapM (insertTmpProf conn) $ transpose (drop 2 tbl) !! 5
+  putStrLn "che_prof filled, start moving to prof"
   mvTmpToProfs conn
+  return . length . filter id $ bs
 
 
 
