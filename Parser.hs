@@ -1,7 +1,12 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Parser (parse_openlects,parse_timetable,word) where
+module Parser
+  ( parse_openlects
+  , parse_timetable
+  , parse_requir
+  , ParseError
+  ) where
 
 import Data.Char (isSpace)
 import Data.List
@@ -115,6 +120,10 @@ tmt_row = do
 
 -------------------------------------------------------------------
 -- Primary
+
+-- parse the 'requir' field
+parse_requir s = parse p "" s
+  where p = sepBy word (string "또는" <|> string "or")
 
 
 -- read a horizontally merged cell

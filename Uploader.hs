@@ -1,8 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Uploader
-  ( mydefaultConnectInfo
-  , insertProfs
+  ( insertProfs
   , insertCourses
   , insertSect
   , insertRooms
@@ -19,9 +18,8 @@ import Control.Monad.Trans.Except
 import Control.Monad (when,guard)
 import Database.MySQL.Simple
 import Database.MySQL.Simple.QueryParams (QueryParams)
-import qualified Text.Parsec as P
 
-import qualified Parser as P (word)
+import Parser (parse_requir)
 
 
 ----------------------------------------------------------------------
@@ -61,14 +59,6 @@ isFieldCompatible (s:tr) =
 isFieldCompatible' :: String -> Bool
 isFieldCompatible' (' ':tr) = isFieldCompatible  tr
 isFieldCompatible'     str  = isFieldCompatible str
-
-
--- access info to localhost root
-mydefaultConnectInfo :: ConnectInfo
-mydefaultConnectInfo =
-  defaultConnectInfo { connectPassword = "sql"
-                     , connectDatabase = "Schedule"
-                     }
 
 
 -- check whether db know the name (field) already
@@ -190,12 +180,6 @@ takeWhileEnd :: (a -> Bool) -> [a] -> [a]
 takeWhileEnd f = reverse . takeWhile f . reverse
 
 
--- parse the 'requir' field
-requirParse :: String -> Either P.ParseError [String]
-requirParse s = P.parse p "" s
-  where p = P.sepBy P.word (P.string "또는" P.<|> P.string "or")
-
-
 -- gets the strings to insert db from parsed one
 refineTlts :: String -> (String,String)
 refineTlts tlt' = let (tkr,tlt) = omitSpan (/='\n') tlt'
@@ -237,7 +221,7 @@ insertCourse conn (crs,_,tlt',cre',req') =
       -- FIXME this should be able to set manually
       sme = 216
       -- ignore parsing error
-      reqs = case requirParse req' of Right ls -> ls ++ ["","",""]
+      reqs = case parse_requir req' of Right ls -> ls ++ ["","",""]
       rqs = map (boolMaybe $ not.null) reqs
       rq1 = rqs !! 0
       rq2 = rqs !! 1
