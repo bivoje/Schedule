@@ -92,7 +92,7 @@ executeIfNone conn tbl key val exq p = do
 exInsertTmpProf :: Connection -> (String,String) -> IO ()
 exInsertTmpProf conn n =
   execute conn insertq n >> return ()
-  where insertq = "INSERT INTO tmp_professor (name,names) VALUES (?,?)"
+  where insertq = "INSERT INTO che_professor (name,names) VALUES (?,?)"
 
 
 -- if name field is not compatible,
@@ -114,7 +114,7 @@ refineTmpProf str =
 -- returns the number of inserted rows (of db)
 insertTmpProf :: Connection -> String -> IO ()
 insertTmpProf conn name = do
-  dbknows <- (checkKeyInDB conn "tmp_professor" "name" (Only name))
+  dbknows <- (checkKeyInDB conn "che_professor" "name" (Only name))
   when (not dbknows) $ do rfname <- refineTmpProf name
                           exInsertTmpProf conn (name,rfname)
 
@@ -133,31 +133,25 @@ exInsertTeach conn teach = (case teach of
 
 
 
--- assume tmp_proff exist, move the data from - to prof, ta db
+-- assume che_proff exist, move the data from - to prof, ta db
 mvTmpToProfs :: Connection -> IO Int
 mvTmpToProfs conn = do
   snamess <- query_ conn selq
   let names = concat (map (read.fromOnly) snamess :: [[Teach]])
    in mapM_ (exInsertTeach conn) names >> return (length names)
-  where selq = "SELECT names FROM tmp_professor"
+  where selq = "SELECT names FROM che_professor"
 
 
 -- top level of inserting to table 'professor'
 -- insert names of professors (and TAs!) to db,
--- also leaves name conversion cache table (tmp_professor)
+-- also leaves name conversion cache table (che_professor)
 -- for use of another (course, section ..) parsing
 -- FIXME supossed to return the number of names inserted..
 -- but it doesn't match
 insertProfs :: Connection -> [[String]] -> IO Int
 insertProfs conn tbl = do
-  execute_ conn createq
   mapM (insertTmpProf conn) $ transpose (drop 2 tbl) !! 5
   mvTmpToProfs conn
-  where createq = "\
-    \ CREATE TEMPORARY TABLE tmp_professor ( \
-    \ name NVARCHAR(50) NOT NULL PRIMARY KEY, \
-    \ names NVARCHAR(200) NOT NULL \
-    \ );"
 
 
 
@@ -230,7 +224,7 @@ insertCourse conn (crs,_,tlt',cre',req') =
 
 
 -- top level of inserting to table 'course'
--- does not depend on tmp_professor
+-- does not depend on che_professor
 -- returns the number of courses inserted
 insertCourses :: Connection -> [[String]] -> IO Int
 insertCourses conn tbl =
@@ -279,7 +273,7 @@ instance Ord Teach where
 
 getProfFromTmp :: Connection -> String -> IO (Maybe String, Maybe String)
 getProfFromTmp conn str = do
-  -- unique tmp_prof existence vertified from insertSect
+  -- unique che_prof existence vertified from insertSect
   -- FIXME isn't this inefficient?
   [Only names] <- query conn selq (Only str)
   ts <- return.read $ names :: IO [Teach]
@@ -291,7 +285,7 @@ getProfFromTmp conn str = do
              _ -> promptTeachers ts
 
   where
-    selq = "SELECT names FROM tmp_professor WHERE name = ?"
+    selq = "SELECT names FROM che_professor WHERE name = ?"
     promptTeachers ts = do
       putStrLn $ "prompt for \"" ++ str ++ "\""
       putStr "pr: "
@@ -320,7 +314,7 @@ insertSectGrp :: Connection -> [(String,String,String,String)] -> IO ()
 insertSectGrp conn grps@((_,crsid,prof,_):_) =
   let isdup = checkKeyInDB conn "section" "crsid" $ Only crsid
       iscrs = checkKeyInDB conn "course" "crs_id" $ Only crsid
-      isprf = checkKeyInDB conn "tmp_professor" "name" $ Only prof
+      isprf = checkKeyInDB conn "che_professor" "name" $ Only prof
       scrsid = '(' : show crsid ++ ")"
       sprof = '(' : show prof ++ ")"
       ready = do
