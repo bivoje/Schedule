@@ -11,15 +11,23 @@ import Data.List
 import Parser as P
 import Uploader
 
+
 instance Exception ParseError
 
+
+-- format error messege by indenting with given token
 indentError :: Exception e => String -> e -> String
 indentError ind e = unlines . map (ind ++ ) . lines $ show e
+
+
 
 ----------------------------------------------------------------------
 -- get input
 
 
+
+-- get user input satisfies given predicate
+-- returns result processed by predicate
 getAnsWith :: (String -> Either String a) -> IO a
 getAnsWith pred = do
   ans <- getLine
@@ -27,6 +35,9 @@ getAnsWith pred = do
     Left errstr -> putStr errstr >> getAnsWith pred
     Right a -> return a
 
+
+-- get user input within given candidates
+-- returns index of user's answer
 getAnsWithin :: String -> [String] -> IO Int
 getAnsWithin pstr ss =
   getAnsWith f
@@ -35,6 +46,7 @@ getAnsWithin pstr ss =
                 Just i -> Right i
                 _      -> Left pstr
 
+-- get user answer of y/n
 askYesNo :: String -> IO Bool
 askYesNo pstr =
   let cand = ["y","n","Y","N","yes","no","Yes","No","YES","NO"]
@@ -48,11 +60,10 @@ askYesNo pstr =
 -- task
 
 
--- catches tasks unhandled within the action
--- unhandled tasks occurs when continueing task is undesirable
--- recovery possible only if restarting job.
--- exceptions can be handled within the anction if recovering
--- is possible
+-- catches unhandled exceptions withing the task (action
+-- unhandled exception:
+--   those circumstances that continueing is undesirable
+--   recovery possible only if we restart the task
 taskHandle :: String -> IO a -> IO (Maybe a)
 taskHandle tstr action =
   fmap Just action `catches`
@@ -60,7 +71,7 @@ taskHandle tstr action =
     , Handler (\ (e :: FormatError) -> h e)
     , Handler (\ (e :: QueryError ) -> h e)
     , Handler (\ (e :: ResultError) -> h e)
-    -- isn't this too inefficient?
+    -- FIXME isn't this too inefficient?
     , Handler (\ (e :: ParseError ) -> h e)
     ]
   where
@@ -70,32 +81,50 @@ taskHandle tstr action =
       putStrLn $ "Do you want to run the task (" ++ tstr ++ ") again?"
       retask tstr action
 
+
+-- ask user y/n and do the task if anser is yes
 retask :: String -> IO a -> IO (Maybe a)
 retask tstr action = do
   b <- askYesNo "Yes/No: "
   if b then taskHandle tstr action  else return Nothing
 
+
+-- enboxes given io action with task (user interpreting handler)
+-- if unhandled exception occurs, user will asked to select
+-- between retry or halting
+-- returns Nothing if the action is halted
 task :: String -> IO a -> MaybeT IO a
 task tstr action = MaybeT $ do
   putStrLn $ "task: " ++ tstr
   retask tstr action
 
+
+-- enboxes a parsing action (io $ parse + parser + stream)
+-- to compatible with task function
+-- throws unhandled exception 'ParseError' when parsing fails
 parsingTask :: String -> IO (Either P.ParseError a) -> MaybeT IO a
 parsingTask tstr pa = task tstr $ do
   ret <- pa
   case ret of Left e -> throw e
               Right a -> return a
 
+
+-- run necessary tasks for uploading in sequence
 runTask conn = runMaybeT $ do
   otbl <- parsingTask "loading openlects" (parse_openlects "ex_openlects")
   ttbl <- parsingTask "loading timetable" (parse_timetable "ex_timetable")
+  --task "inserting Professor" (insertProf otbl)
+
   return ()
 
 
 ----------------------------------------------------------------------
 -- main
 
--- access info to localhost root
+
+
+-- access info to database
+-- FIXME currently, information of test database 'Tchedule'
 mydefaultConnectInfo :: ConnectInfo
 mydefaultConnectInfo =
   defaultConnectInfo { connectHost = "192.168.0.4"
@@ -103,6 +132,9 @@ mydefaultConnectInfo =
                      , connectDatabase = "Tchedule"
                      }
 
+
+-- ask user for passwd to db, then connect to it
+-- FIXME getting passwd using getLine reveals passwd to screan
 connectWithPasswd :: IO Connection
 connectWithPasswd = do
   putStrLn "connecting to db.."
@@ -110,6 +142,10 @@ connectWithPasswd = do
   psw <- getLine
   connect mydefaultConnectInfo {connectPassword=psw}
 
+
+-- main functions
+-- connects to server, does the tasks,
+-- closes connection even though exception occurs
 main :: IO ()
 main = do
   hSetBuffering stdin LineBuffering
@@ -120,14 +156,3 @@ main = do
        return Nothing
      )
   return ()
-
-
-{-
- - (MySQL)
- - MySQLError
- -   |ConnectionError
- -   |ResultError
- - FormatError
- - QueryError
- - ResultError
- -}
