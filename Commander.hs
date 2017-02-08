@@ -11,6 +11,7 @@ import Data.List
 
 import Parser as P
 import Uploader
+import Prompt
 
 
 instance Exception ParseError
@@ -23,42 +24,8 @@ indentError ind e = unlines . map (ind ++ ) . lines $ show e
 
 
 ----------------------------------------------------------------------
--- get input
-
-
-
--- get user input satisfies given predicate
--- returns result processed by predicate
-getAnsWith :: (String -> Either String a) -> IO a
-getAnsWith pred = do
-  ans <- getLine
-  case pred ans of
-    Left errstr -> putStr errstr >> getAnsWith pred
-    Right a -> return a
-
-
--- get user input within given candidates
--- returns index of user's answer
-getAnsWithin :: String -> [String] -> IO Int
-getAnsWithin pstr ss =
-  getAnsWith f
-  where f :: String -> Either String Int
-        f s = case findIndex (==s) ss of
-                Just i -> Right i
-                _      -> Left pstr
-
--- get user answer of y/n
-askYesNo :: String -> IO Bool
-askYesNo pstr =
-  let cand = ["y","n","Y","N","yes","no","Yes","No","YES","NO"]
-      pstr' = "please answer in yes/no\n" ++ pstr
-   in do putStr pstr
-         ansi <- getAnsWithin pstr' cand
-         return $ even ansi
-
-
-----------------------------------------------------------------------
 -- task
+
 
 
 -- catches unhandled exceptions withing the task (action
