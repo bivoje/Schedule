@@ -80,10 +80,17 @@ task tstr action = MaybeT $ do
   putStrLn $ "task: " ++ tstr
   retask tstr action
 
-runTask :: Connection -> IO (Maybe ())
+parsingTask :: String -> IO (Either P.ParseError a) -> MaybeT IO a
+parsingTask tstr pa = task tstr $ do
+  ret <- pa
+  case ret of Left e -> throw e
+              Right a -> return a
+
 runTask conn = runMaybeT $ do
-  -- something to do
+  otbl <- parsingTask "loading openlects" (parse_openlects "ex_openlects")
+  ttbl <- parsingTask "loading timetable" (parse_timetable "ex_timetable")
   return ()
+
 
 ----------------------------------------------------------------------
 -- main
