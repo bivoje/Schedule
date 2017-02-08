@@ -1,6 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables, NoMonomorphismRestriction #-}
 
 import System.IO
+import System.IO.Error (isDoesNotExistError)
 
 import Control.Exception
 import Control.Monad.Trans.Maybe
@@ -66,7 +67,7 @@ askYesNo pstr =
 --   recovery possible only if we restart the task
 taskHandle :: String -> IO a -> IO (Maybe a)
 taskHandle tstr action =
-  fmap Just action `catches`
+  catchJust f (fmap Just action) h `catches`
     [ Handler (\ (e :: MySQLError ) -> h e)
     , Handler (\ (e :: FormatError) -> h e)
     , Handler (\ (e :: QueryError ) -> h e)
@@ -75,6 +76,7 @@ taskHandle tstr action =
     , Handler (\ (e :: ParseError ) -> h e)
     ]
   where
+    f e = if isDoesNotExistError e then Just e else Nothing
     h e = do
       putStrLn "Unhandled Exception occured"
       putStr $ indentError "  " e
