@@ -12,8 +12,7 @@ module Uploader
 import Data.List (transpose, groupBy)
 import Data.Char
 import Data.Function (on)
-import Data.Bool (bool)
-import Data.Maybe (listToMaybe)
+import Data.Maybe (listToMaybe, fromMaybe)
 import Control.Monad.Trans.Except
 import Control.Monad (when,guard)
 import Control.Exception
@@ -115,19 +114,6 @@ checkKeyInDB conn tbl key val = do
   where selq = mconcat ["SELECT COUNT(", key, ") FROM ", tbl, " WHERE ", key, "= ?"]
 
 
--- insert name to db if there's no pre-inserted
--- prevent sql-error exceptions
--- FIXME this might be not appropriate if the name field is
--- not primary key anymore
-executeIfNone :: (QueryParams q1, QueryParams q2)
-             => Connection -> Query -> Query -> q1
-             -> Query -> q2 -> IO Bool
-executeIfNone conn tbl key val exq p = do
-  dbknows <- checkKeyInDB conn tbl key val
-  when (not dbknows) $
-    execute conn exq p >> return ()
-  return (not dbknows)
-
 
 -- handle MySQLError exception
 handleInsert :: (QueryParams q, Show q) => (q -> IO Bool) -> q -> Int -> IO Bool
@@ -213,10 +199,10 @@ refineTlts tlt' = let (tkr,tlt) = omitSpan (/='\n') tlt'
     lstrip = dropWhile isSpace
     strip = lstrip . reverse . lstrip . reverse
     sub c | isAscii c = c
-              | otherwise = case c of
-                  'Ⅱ' -> '2'
-                  'Ⅰ' -> '1'
-                  _   -> error $ '"' : (show c) ++ "\""
+          | otherwise =
+          -- FIXME not error, but user input
+            let err = error $ '"' : (show c) ++ "\""
+             in fromMaybe err $ lookup c [('Ⅱ','2'),('Ⅰ','1')]
 
 
 -- merely excutes the insert query to db
@@ -225,7 +211,7 @@ exInsertCourse :: Connection
                   ,Int,Maybe String,Maybe String,Maybe String)
                -> IO Bool
 exInsertCourse conn args@(ii,_,_,_,_,_,_,_) =
-  executeIfNone conn "course" "crs_id" (Only ii) insq args
+  exInsertHandler (\q -> execute conn insq q >> return True) args
   where insq = "\
     \ INSERT INTO \
     \   course (crs_id, title, title_kr, credit, \
@@ -242,16 +228,29 @@ insertCourse :: Connection
 -- also, we don't utilize classify (cls) yet
 insertCourse conn (crs,_,tlt',cre',req') =
   let (tlt,tkr) = refineTlts tlt'
-      cre = read $ takeWhileEnd (/=':') cre' :: Int
-      -- FIXME this should be able to set manually
+      -- TODO this should be able to set manually
       sme = 216
-      -- ignore parsing error
-      reqs = case parse_requir req' of Right ls -> ls ++ ["","",""]
-      rqs = map (boolMaybe $ not.null) reqs
-      rq1 = rqs !! 0
-      rq2 = rqs !! 1
-      rq3 = rqs !! 2
-   in exInsertCourse conn (crs,tlt,tkr,cre,sme,rq1,rq2,rq3)
+  in do
+    cre <- getcred
+    (rq1,rq2,rq3) <- getreqs >>= (\ls -> return (ls!!0,ls!!1,ls!!2))
+    exInsertCourse conn (crs,tlt,tkr,cre,sme,rq1,rq2,rq3)
+  where
+    getcred = case reads $ takeWhileEnd (/=':') cre' of
+      [(c,_)] -> return c
+      [] -> do
+        putStrLn "could not parse credit from.."
+        putStrLn $ "\"" ++ cre' ++ "\""
+        putStr "please enter manually\ncre: "
+        getAnsWith (\s -> if all isNumber s
+                          then Right $ read s
+                          else Left "please enter a number\ncre: ")
+    getreqs = case parse_requir req' of
+      Right ls -> return . map nullize $ ls ++ ["","",""]
+      Left _ -> do
+        putStrLn "could not parse requir list from.."
+        putStrLn $ "\"" ++ req' ++ "\""
+        putStrLn "please enter manually"
+        getStrFor ["rq1", "rq2", "rq3"]
 
 
 -- top level of inserting to table 'course'
@@ -264,7 +263,7 @@ insertCourses conn tbl =
       nubtbl = map head $ groupBy ((==) `on` (!!3)) contbl
       tups = map (\s -> (s!!2,s!!1,s!!3,s!!4,s!!9)) nubtbl
       num = length tups
-   in fmap (sum . map (bool 0 1)) $ mapM (insertCourse conn) tups
+   in fmap (length . filter id) $ mapM (insertCourse conn) tups
 
 
 

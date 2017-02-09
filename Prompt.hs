@@ -28,6 +28,7 @@ getAnsWithin pstr cand =
                 Just i -> Right i
                 _      -> Left pstr
 
+
 -- get user answer in y/n
 -- pstr is for first & following prompt
 askYesNo :: String -> IO Bool
@@ -39,3 +40,9 @@ askYesNo pstr =
          return $ even ansi
 
 
+getStrFor :: [String] -> IO [Maybe String]
+getStrFor =
+  fmap (map nullize) . mapM getans
+  where
+    getans s = putStr (s ++ ": ") >> getLine
+    nullize s = if null s then Nothing else Just s
