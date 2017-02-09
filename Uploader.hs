@@ -26,9 +26,22 @@ import Parser (parse_requir)
 import Prompt
 
 
-----------------------------------------------------------------------
--- insert Professor
+nullize :: String -> Maybe String
+nullize s = guard (not $ null s) >> return s
 
+
+-- span, omits the separator
+omitSpan :: (a -> Bool) -> [a] -> ([a],[a])
+omitSpan f ls = case span f ls of (as,c:bs) -> (as,bs)
+                                  x         -> x
+
+
+boolMaybe :: (a -> Bool) -> a -> Maybe a
+boolMaybe f a = guard (f a) >> return a
+
+
+takeWhileEnd :: (a -> Bool) -> [a] -> [a]
+takeWhileEnd f = reverse . takeWhile f . reverse
 
 
 -- prompts user to type in arbitrary number of lines
@@ -47,6 +60,30 @@ promptLinesOf check = do
 data Teach = PR String
            | TA String
            deriving (Show, Read)
+
+
+-- excute given (probably inserting query) io action
+-- if MySQLError occurs, handle it
+exInsertHandler :: (QueryParams q, Show q)
+                => (q -> IO Bool) -> q -> IO Bool
+exInsertHandler act q =
+  catchJust f (act q) (handleInsert act q)
+  where
+    f e = let enum = errNumber e in if enum == 1062 then Just enum else Nothing
+
+
+-- merely excutes the insert query to db with error handling
+exInsertTmpProf :: Connection -> (String,String) -> IO Bool
+exInsertTmpProf conn q =
+  exInsertHandler (\n -> execute conn insq n >> return True) q
+  where
+    insq = "INSERT INTO che_professor (name,names) VALUES (?,?)"
+
+
+
+----------------------------------------------------------------------
+-- insert Professor
+
 
 
 -- check string that might violate the table contents
@@ -101,24 +138,6 @@ handleInsert act q 1062 = do
       case ans of 0 -> exInsertHandler act q
                   1 -> return False
                   2 -> throw $ userError "halt during inserting tmp prof"
-
-
--- excute given (probably inserting query) io action
--- if MySQLError occurs, handle it
-exInsertHandler :: (QueryParams q, Show q)
-                => (q -> IO Bool) -> q -> IO Bool
-exInsertHandler act q =
-  catchJust f (act q) (handleInsert act q)
-  where
-    f e = let enum = errNumber e in if enum == 1062 then Just enum else Nothing
-
-
--- merely excutes the insert query to db with error handling
-exInsertTmpProf :: Connection -> (String,String) -> IO Bool
-exInsertTmpProf conn q =
-  exInsertHandler (\n -> execute conn insq n >> return True) q
-  where
-    insq = "INSERT INTO che_professor (name,names) VALUES (?,?)"
 
 
 -- if name field is not compatible,
@@ -184,20 +203,6 @@ insertProfs conn tbl = do
 ----------------------------------------------------------------------
 -- insert Course
 
-
-
--- span, omits the separator
-omitSpan :: (a -> Bool) -> [a] -> ([a],[a])
-omitSpan f ls = case span f ls of (as,c:bs) -> (as,bs)
-                                  x         -> x
-
-
-boolMaybe :: (a -> Bool) -> a -> Maybe a
-boolMaybe f a = guard (f a) >> return a
-
-
-takeWhileEnd :: (a -> Bool) -> [a] -> [a]
-takeWhileEnd f = reverse . takeWhile f . reverse
 
 
 -- gets the strings to insert db from parsed one
