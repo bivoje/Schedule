@@ -12,8 +12,7 @@ module Uploader
 import Data.List (transpose, groupBy)
 import Data.Char
 import Data.Function (on)
-import Data.Maybe (listToMaybe, fromMaybe)
-import Control.Monad.Trans.Except
+import Data.Maybe
 import Control.Monad (when,guard)
 import Control.Exception
 import System.IO.Error
@@ -191,6 +190,12 @@ insertProfs conn tbl = do
 
 
 
+-- get the sect number from the title field
+readsCredit :: String -> [(Int,String)]
+readsCredit str =
+  reads $ takeWhileEnd (/=':') str :: [(Int,String)]
+
+
 -- gets the strings to insert db from parsed one
 refineTlts :: String -> (String,String)
 refineTlts tlt' = let (tkr,tlt) = omitSpan (/='\n') tlt'
@@ -235,14 +240,14 @@ insertCourse conn (crs,_,tlt',cre',req') =
     (rq1,rq2,rq3) <- getreqs >>= (\ls -> return (ls!!0,ls!!1,ls!!2))
     exInsertCourse conn (crs,tlt,tkr,cre,sme,rq1,rq2,rq3)
   where
-    getcred = case reads $ takeWhileEnd (/=':') cre' of
+    getcred = case readsCredit cre' of
       [(c,_)] -> return c
       [] -> do
         putStrLn "could not parse credit from.."
         putStrLn $ "\"" ++ cre' ++ "\""
         putStr "please enter manually\ncre: "
         getAnsWith (\s -> if all isNumber s
-                          then Right $ read s
+                          then Right $ (read s :: Int)
                           else Left "please enter a number\ncre: ")
     getreqs = case parse_requir req' of
       Right ls -> return . map nullize $ ls ++ ["","",""]
@@ -271,23 +276,6 @@ insertCourses conn tbl =
 -- insert Section
 
 
-type Good = ExceptT String IO ()
-
-infix 0 <~~
-
---(<~~) :: Monad m => m Bool -> String -> Good
-(<~~) :: IO Bool -> String -> Good
-mb <~~ str = ExceptT $ do
-  b <- mb
-  return $ if b then Right () else Left str
-
-nope :: Monad m => m Bool -> m Bool
-nope = fmap not
-
-isGood :: Either String () -> Bool
-isGood (Right ()) = True
-isGood (Left _) = False
-
 {-
 instance Eq Teach where
   (PR x) == (PR y) = x == y
@@ -301,38 +289,53 @@ instance Ord Teach where
   (TA _) <= (PR _) = True
 -}
 
-getProfFromTmp :: Connection -> String -> IO (Maybe String, Maybe String)
-getProfFromTmp conn str = do
-  -- unique che_prof existence vertified from insertSect
-  -- FIXME isn't this inefficient?
-  [Only names] <- query conn selq (Only str)
-  ts <- return.read $ names :: IO [Teach]
-  case ts of []             -> return (Nothing, Nothing)
-             [PR pr]        -> return (Just pr, Nothing)
-             [TA _]         -> error "only ta??"
-             [PR pr, TA ta] -> return (Just pr, Just ta)
-             [TA ta, PR pr] -> return (Just pr, Just ta)
-             _ -> promptTeachers ts
-
+getCacheProf :: Connection -> String -> IO [Teach]
+getCacheProf conn str = do
+  sel <- query conn selq (Only str)
+  case sel of
+    (Only x):_ -> return.read $ x
+    [] -> do
+      putStrLn $ "can't find cache for \"" ++ str ++ "\""
+      putStrLn "please insert the cache data manually"
+      che <- getStrFor ["pr", "ta"]
+      -- FIXME what if user insert empty for ta or pr?
+      prta <- return $ catMaybes [fmap PR (che!!0), fmap TA (che!!1)]
+      -- FIXME these are not handled by insertHandler!!
+      exInsertTmpProf conn (str, show prta)
+      mapM_ (exInsertTeach conn) prta
+      return prta
   where
     selq = "SELECT names FROM che_professor WHERE name = ?"
+
+
+getProfFromTmp :: Connection -> String -> IO (Maybe String, Maybe String)
+getProfFromTmp conn str = do
+  ts <- getCacheProf conn str
+  case ts of []             -> return (Nothing, Nothing)
+             [PR pr]        -> return (Just pr, Nothing)
+             [PR pr, TA ta] -> return (Just pr, Just ta)
+             [TA ta, PR pr] -> return (Just pr, Just ta)
+             [TA _] -> putStrLn "only ta?? you better update cache_prof"
+                       >> promptTeachers ts
+             _ -> promptTeachers ts
+  where
     promptTeachers ts = do
-      putStrLn $ "prompt for \"" ++ str ++ "\""
-      putStr "pr: "
-      pr <- getLine
-      putStr "ta: "
-      ta <- getLine
-      return (boolMaybe (not.null) pr, boolMaybe (not.null) ta)
+      putStrLn "could not get pr/ta properly from cache of.."
+      putStrLn $ "\"" ++ str ++ "\""
+      putStrLn "please enter manually"
+      prta <- getStrFor ["pr", "ta"]
+      return (prta !! 0, prta !! 1)
 
 
-exInsertSect :: Connection -> Int -> (String,String,String,String) -> IO ()
+exInsertSect :: Connection -> Int -> (String,String,String,String)
+             -> IO Bool
 -- we can check secn (int) with sectno (string) but we don't..
 exInsertSect conn secn (_,crsid,prof',enrol') =
   let enrol = fmap fst . listToMaybe $ (reads enrol' :: [(Int,String)])
   in do
     (prof,ta) <- getProfFromTmp conn prof'
-    execute conn insq (secn,crsid,prof,ta,enrol)
-    return ()
+    args <- return (secn,crsid,prof,ta,enrol)
+    exInsertHandler (\q -> execute conn insq q >> return True) args
   where insq = "\
     \ INSERT INTO \
     \   section (sect_no, crsid, prof, ta, enroll_size) \
@@ -340,31 +343,19 @@ exInsertSect conn secn (_,crsid,prof',enrol') =
     \ "
 
 
-insertSectGrp :: Connection -> [(String,String,String,String)] -> IO ()
+insertSectGrp :: Connection -> [(String,String,String,String)] -> IO Int
 insertSectGrp conn grps@((_,crsid,prof,_):_) =
-  let isdup = checkKeyInDB conn "section" "crsid" $ Only crsid
-      iscrs = checkKeyInDB conn "course" "crs_id" $ Only crsid
-      isprf = checkKeyInDB conn "che_professor" "name" $ Only prof
-      scrsid = '(' : show crsid ++ ")"
-      sprof = '(' : show prof ++ ")"
-      ready = do
-        nope isdup <~~ "there's section of same crsid " ++ scrsid
-        iscrs      <~~ "there's no such crsid " ++ scrsid
-        isprf      <~~ "there's no such prof " ++ sprof
-      ex = mapM_ (uncurry $ exInsertSect conn) $ zip [1..] grps
-   in do r <- runExceptT ready
-         when (isGood r) ex
+  let ex = mapM (uncurry $ exInsertSect conn) $ zip [1..] grps
+   in fmap (length . filter id) ex
 
 
---FIXME
---insertSect :: Connection -> [[String]] -> IO Int
-insertSect :: Connection -> [[String]] -> IO ()
+insertSect :: Connection -> [[String]] -> IO Int
 insertSect conn tbl =
   -- (sect#, crsid, prof(ta), enroll)
   let contbl = drop 2 tbl
       tups = map (\s -> (s!!7,s!!2,s!!5,s!!8)) contbl
       gtups = groupBy ((==) `on` snd4) tups
-   in mapM_ (insertSectGrp conn) gtups
+   in fmap sum $ mapM (insertSectGrp conn) gtups
   where snd4 (_,b,_,_) = b
 
 
@@ -397,7 +388,7 @@ filterEmpty = map (map (filter filterf))
   where filterf (a,_,_,_) = not $ null a
 
 
--- get the sect number from the name field of vcell
+-- get the sect number from the title field
 getSectno :: String -> Int
 getSectno str =
   case dropWhile (/='(') str of
