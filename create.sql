@@ -34,21 +34,27 @@ CREATE TABLE IF NOT EXISTS course (
   semester SMALLINT NOT NULL CHECK (100 <= semester AND semester < 500),
   /* requir 1, 2, 3 will be filled sequentially
      assume there be not more than 3 requir */
-  requir1 CHAR(6) NULL REFERENCES course (crs_id),
-  requir2 CHAR(6) NULL REFERENCES course (crs_id),
-  requir3 CHAR(6) NULL REFERENCES course (crs_id),
+  requir1 CHAR(6) NULL,
+  requir2 CHAR(6) NULL,
+  requir3 CHAR(6) NULL,
+  CONSTRAINT FOREIGN KEY (requir1) REFERENCES course (crs_id),
+  CONSTRAINT FOREIGN KEY (requir2) REFERENCES course (crs_id),
+  CONSTRAINT FOREIGN KEY (requir3) REFERENCES course (crs_id),
   CHECK ((requir1 IS NOT NULL OR requir2 IS NULL)
      AND (requir2 IS NOT NULL OR requir3 IS NULL))
 );
 
 CREATE TABLE IF NOT EXISTS section (
   sect_no TINYINT NOT NULL,
-  crsid CHAR(6) NOT NULL REFERENCES course (crs_id),
+  crsid CHAR(6) NOT NULL,
   -- prof/ta might not be determined by the time the list released
-  prof NVARCHAR(50) NULL REFERENCES professor (name),
-  ta NVARCHAR(50) NULL REFERENCES ta (name),
+  prof NVARCHAR(50) NULL,
+  ta NVARCHAR(50) NULL,
   room NVARCHAR(20) NULL,
   enroll_size SMALLINT NULL,
+  CONSTRAINT FOREIGN KEY (crsid) REFERENCES course (crs_id),
+  CONSTRAINT FOREIGN KEY (prof) REFERENCES professor (name),
+  CONSTRAINT FOREIGN KEY (ta) REFERENCES ta (name),
   CONSTRAINT PRIMARY KEY (crsid, sect_no)
 );
 
