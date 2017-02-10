@@ -44,17 +44,22 @@ askYesNo pstr =
 -- get str for each field
 getStrFields :: [String] -> IO [Maybe String]
 getStrFields strs =
-  getFieldsWith $ map (\s -> (s, Right . nullize)) strs
+  getFieldsWith (Right . nullize) strs
   where nullize s = if null s then Nothing else Just s
 
+
+getFieldsWith :: (String -> Either String a) -> [String] -> IO [a]
+getFieldsWith pred = getFieldsWiths . map (\s -> (s,pred))
+
+
 -- get str for each field
-getFieldsWith :: [(String, String -> Either String a)] -> IO [a]
-getFieldsWith = mapM getans
+getFieldsWiths :: [(String, String -> Either String a)] -> IO [a]
+getFieldsWiths = mapM getans
   where getans (s,f) = do
           putStr (s ++ ": ")
-          s <- getLine
-          case f s of
-            Left errstr -> putStr errstr >> getans (s,f)
+          x <- getLine
+          case f x of
+            Left errstr -> putStrLn errstr >> getans (s,f)
             Right a -> return a
 
 

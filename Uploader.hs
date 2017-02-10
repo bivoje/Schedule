@@ -55,6 +55,7 @@ exInsertHandler act q =
   catchJust f (act q) (handleInsert act q)
   where
     f e = let enum = errNumber e in if enum == 1062 then Just enum else Nothing
+    -- 1452
 
 
 -- handle MySQLError exception
@@ -103,7 +104,21 @@ isFieldCompatible' (' ':tr) = isFieldCompatible  tr
 isFieldCompatible'     str  = isFieldCompatible str
 
 
+-- get teacher names manually
+getManualTeaches :: IO [Teach]
+getManualTeaches = do
+    names <- promptLinesOf isFieldCompatible'
+    return . catMaybes . map (fmap conv . nullize) $ names
+  where conv (' ':s) = TA s
+        conv      s  = PR s
 
+getManualTeachPair :: IO (Maybe String, Maybe String)
+getManualTeachPair = do
+  pstr <- getFieldsWith f ["pr", "ta"]
+  return (pstr!!0, pstr!!1)
+  where f s = if null s || isFieldCompatible s
+              then Right (nullize s)
+              else Left "***Error: not aceptable"
 
 -- if name field is not compatible,
 -- user will be prompted to type in names manually
@@ -113,10 +128,7 @@ refineTmpProf str =
   if (isFieldCompatible str) then return $ show [PR str]
   else do
     putStrLn ("manual insert required with \"" ++ str ++ "\"")
-    names <- promptLinesOf isFieldCompatible'
-    return $ show $ map conv names
-  where conv (' ':s) = TA s
-        conv      s  = PR s
+    fmap show getManualTeaches
 
 
 -- merely excutes the insert query to db with error handling
@@ -285,9 +297,7 @@ getCacheProf conn str = do
     [] -> do
       putStrLn $ "can't find cache for \"" ++ str ++ "\""
       putStrLn "please insert the cache data manually"
-      che <- getStrFields ["pr", "ta"]
-      -- FIXME what if user insert empty for ta or pr?
-      prta <- return $ catMaybes [fmap PR (che!!0), fmap TA (che!!1)]
+      prta <- getManualTeaches
       -- FIXME these are not handled by insertHandler!!
       exInsertTmpProf conn (str, show prta)
       mapM_ (exInsertTeach conn) prta
@@ -311,8 +321,7 @@ getProfFromTmp conn str = do
       putStrLn "could not get pr/ta properly from cache of.."
       putStrLn $ "\"" ++ str ++ "\""
       putStrLn "please enter manually"
-      prta <- getStrFields ["pr", "ta"]
-      return (prta !! 0, prta !! 1)
+      getManualTeachPair
 
 
 insertSect :: Connection -> Int -> (String,String,String,String)
