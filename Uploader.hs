@@ -3,7 +3,7 @@
 module Uploader
   ( insertProfs
   , insertCourses
-  , insertSect
+  , insertSects
   , insertRooms
   , insertTmts
   )
@@ -42,19 +42,6 @@ takeWhileEnd :: (a -> Bool) -> [a] -> [a]
 takeWhileEnd f = reverse . takeWhile f . reverse
 
 
--- prompts user to type in arbitrary number of lines
--- exit prompt by giving empty line
--- returns the collection of lines
-promptLinesOf :: (String -> Bool) -> IO [String]
-promptLinesOf check = do
-  str <- getLine
-  proc str
-  where proc str | null str  = return []
-                 | check str = fmap (str:) $ promptLinesOf check
-                 | otherwise = putStrLn "***Error: not aceptable"
-                                >> promptLinesOf check
-
-
 data Teach = PR String
            | TA String
            deriving (Show, Read)
@@ -70,12 +57,28 @@ exInsertHandler act q =
     f e = let enum = errNumber e in if enum == 1062 then Just enum else Nothing
 
 
--- merely excutes the insert query to db with error handling
-exInsertTmpProf :: Connection -> (String,String) -> IO Bool
-exInsertTmpProf conn q =
-  exInsertHandler (\n -> execute conn insq n >> return True) q
-  where
-    insq = "INSERT INTO che_professor (name,names) VALUES (?,?)"
+-- handle MySQLError exception
+handleInsert :: (QueryParams q, Show q) => (q -> IO Bool) -> q -> Int -> IO Bool
+handleInsert act q 1062 = do
+      putStrLn $ "dupkey error occured while inserting " ++ show q
+      putStr "as you want, (retry/continue(skip)/halt(quit)):"
+      ans <- getAnsWithin "please answer in (r/c/h): " ["r", "c", "h"]
+      case ans of 0 -> exInsertHandler act q
+                  1 -> return False
+                  2 -> throw $ userError "halt during inserting tmp prof"
+
+
+-- check whether db know the name (field) already
+-- 'Query' argument is a kind of trick makin use of
+-- (Only) string literals can be intepreted as Query type
+-- because variables (QeuryParams) are quoted automatically
+-- (e.f user-inputs inevitably be quoted. very clever)
+checkKeyInDB :: QueryParams q
+             => Connection -> Query -> Query -> q -> IO Bool
+checkKeyInDB conn tbl key val = do
+  [Only num] <- query conn selq val
+  return $ num /= (0 :: Int)
+  where selq = mconcat ["SELECT COUNT(", key, ") FROM ", tbl, " WHERE ", key, "= ?"]
 
 
 
@@ -100,29 +103,6 @@ isFieldCompatible' (' ':tr) = isFieldCompatible  tr
 isFieldCompatible'     str  = isFieldCompatible str
 
 
--- check whether db know the name (field) already
--- 'Query' argument is a kind of trick makin use of
--- (Only) string literals can be intepreted as Query type
--- because variables (QeuryParams) are quoted automatically
--- (e.f user-inputs inevitably be quoted. very clever)
-checkKeyInDB :: QueryParams q
-             => Connection -> Query -> Query -> q -> IO Bool
-checkKeyInDB conn tbl key val = do
-  [Only num] <- query conn selq val
-  return $ num /= (0 :: Int)
-  where selq = mconcat ["SELECT COUNT(", key, ") FROM ", tbl, " WHERE ", key, "= ?"]
-
-
-
--- handle MySQLError exception
-handleInsert :: (QueryParams q, Show q) => (q -> IO Bool) -> q -> Int -> IO Bool
-handleInsert act q 1062 = do
-      putStrLn $ "dupkey error occured while inserting " ++ show q
-      putStr "as you want, (retry/continue(skip)/halt(quit)):"
-      ans <- getAnsWithin "please answer in (r/c/h): " ["r", "c", "h"]
-      case ans of 0 -> exInsertHandler act q
-                  1 -> return False
-                  2 -> throw $ userError "halt during inserting tmp prof"
 
 
 -- if name field is not compatible,
@@ -137,6 +117,14 @@ refineTmpProf str =
     return $ show $ map conv names
   where conv (' ':s) = TA s
         conv      s  = PR s
+
+
+-- merely excutes the insert query to db with error handling
+exInsertTmpProf :: Connection -> (String,String) -> IO Bool
+exInsertTmpProf conn q =
+  exInsertHandler (\n -> execute conn insq n >> return True) q
+  where
+    insq = "INSERT INTO che_professor (name,names) VALUES (?,?)"
 
 
 -- extract professor name from a row, then insert it to db
@@ -215,7 +203,7 @@ exInsertCourse :: Connection
                -> (String,String,String,Int
                   ,Int,Maybe String,Maybe String,Maybe String)
                -> IO Bool
-exInsertCourse conn args@(ii,_,_,_,_,_,_,_) =
+exInsertCourse conn args =
   exInsertHandler (\q -> execute conn insq q >> return True) args
   where insq = "\
     \ INSERT INTO \
@@ -255,7 +243,7 @@ insertCourse conn (crs,_,tlt',cre',req') =
         putStrLn "could not parse requir list from.."
         putStrLn $ "\"" ++ req' ++ "\""
         putStrLn "please enter manually"
-        getStrFor ["rq1", "rq2", "rq3"]
+        getStrFields ["rq1", "rq2", "rq3"]
 
 
 -- top level of inserting to table 'course'
@@ -297,7 +285,7 @@ getCacheProf conn str = do
     [] -> do
       putStrLn $ "can't find cache for \"" ++ str ++ "\""
       putStrLn "please insert the cache data manually"
-      che <- getStrFor ["pr", "ta"]
+      che <- getStrFields ["pr", "ta"]
       -- FIXME what if user insert empty for ta or pr?
       prta <- return $ catMaybes [fmap PR (che!!0), fmap TA (che!!1)]
       -- FIXME these are not handled by insertHandler!!
@@ -323,14 +311,14 @@ getProfFromTmp conn str = do
       putStrLn "could not get pr/ta properly from cache of.."
       putStrLn $ "\"" ++ str ++ "\""
       putStrLn "please enter manually"
-      prta <- getStrFor ["pr", "ta"]
+      prta <- getStrFields ["pr", "ta"]
       return (prta !! 0, prta !! 1)
 
 
-exInsertSect :: Connection -> Int -> (String,String,String,String)
+insertSect :: Connection -> Int -> (String,String,String,String)
              -> IO Bool
 -- we can check secn (int) with sectno (string) but we don't..
-exInsertSect conn secn (_,crsid,prof',enrol') =
+insertSect conn secn (_,crsid,prof',enrol') =
   let enrol = fmap fst . listToMaybe $ (reads enrol' :: [(Int,String)])
   in do
     (prof,ta) <- getProfFromTmp conn prof'
@@ -344,13 +332,13 @@ exInsertSect conn secn (_,crsid,prof',enrol') =
 
 
 insertSectGrp :: Connection -> [(String,String,String,String)] -> IO Int
-insertSectGrp conn grps@((_,crsid,prof,_):_) =
-  let ex = mapM (uncurry $ exInsertSect conn) $ zip [1..] grps
+insertSectGrp conn grps =
+  let ex = mapM (uncurry $ insertSect conn) $ zip [1..] grps
    in fmap (length . filter id) ex
 
 
-insertSect :: Connection -> [[String]] -> IO Int
-insertSect conn tbl =
+insertSects :: Connection -> [[String]] -> IO Int
+insertSects conn tbl =
   -- (sect#, crsid, prof(ta), enroll)
   let contbl = drop 2 tbl
       tups = map (\s -> (s!!7,s!!2,s!!5,s!!8)) contbl

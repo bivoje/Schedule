@@ -1,6 +1,7 @@
 
 module Prompt where
 
+--import Data.Either
 import Data.List (findIndex)
 
 -- get user input satisfies given predicate
@@ -40,9 +41,31 @@ askYesNo pstr =
          return $ even ansi
 
 
-getStrFor :: [String] -> IO [Maybe String]
-getStrFor =
-  fmap (map nullize) . mapM getans
-  where
-    getans s = putStr (s ++ ": ") >> getLine
-    nullize s = if null s then Nothing else Just s
+-- get str for each field
+getStrFields :: [String] -> IO [Maybe String]
+getStrFields strs =
+  getFieldsWith $ map (\s -> (s, Right . nullize)) strs
+  where nullize s = if null s then Nothing else Just s
+
+-- get str for each field
+getFieldsWith :: [(String, String -> Either String a)] -> IO [a]
+getFieldsWith = mapM getans
+  where getans (s,f) = do
+          putStr (s ++ ": ")
+          s <- getLine
+          case f s of
+            Left errstr -> putStr errstr >> getans (s,f)
+            Right a -> return a
+
+
+-- prompts user to type in arbitrary number of lines
+-- exit prompt by giving empty line
+-- returns the collection of lines
+promptLinesOf :: (String -> Bool) -> IO [String]
+promptLinesOf check = do
+  str <- getLine
+  proc str
+  where proc str | null str  = return []
+                 | check str = fmap (str:) $ promptLinesOf check
+                 | otherwise = putStrLn "***Error: not aceptable"
+                                >> promptLinesOf check
