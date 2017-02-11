@@ -389,18 +389,27 @@ filterEmpty = map (map (filter filterf))
 
 
 -- get the sect number from the title field
-getSectno :: String -> Int
+getSectno :: String -> IO Int
 getSectno str =
   case dropWhile (/='(') str of
-    '(':xs -> read $ takeWhile isNumber xs
-    [] -> 1
+    [] -> return 1
+    xs -> case reads $ takeWhile isNumber xs of
+      [(a,_)] -> return a
+      [] -> do
+        putStrLn "could not parse sect number from.."
+        putStrLn $ "\"" ++ str ++ "\""
+        putStrLn "please enter manually"
+        getNumber "cre: "
 
 
 -- merely excutes the query to db
 -- (room, crsid, sectno)
+-- always success (since it's update
 exInsertRoom :: Connection -> (String,String,Int) -> IO ()
 exInsertRoom conn tup =
-  print tup >>
+  -- FIXME not doing any exception handling
+  -- since this is not a 'insertion', we can't use InsertHandler
+  -- nothing happens if (crsid,sectno) not found in db
   execute conn updq tup >> return ()
   where updq = "\
     \ UPDATE section \
@@ -408,14 +417,17 @@ exInsertRoom conn tup =
     \ WHERE crsid = ? AND sect_no = ? \
     \;"
 
+
 -- update table 'section' with room the infomation
 insertRooms :: Connection -> Pcells -> IO ()
 insertRooms conn pcells =
   let vcells = filterNoRoom . concat . concat $ pcells
-   in mapM_ (exInsertRoom conn . g) vcells
+   in mapM_ (\c -> g c >>= exInsertRoom conn) vcells
   where filterNoRoom = filter f
         f (_,_,_,d) = not $ null d
-        g (a,b,c,d) = (d,a,getSectno(c))
+        g (a,b,c,d) = do
+          sectno <- getSectno c
+          return (d,a,sectno)
 
 
 
@@ -440,8 +452,10 @@ insertVcells conn np nd vcells =
   let days = ["MON", "TUE", "WED", "THR", "FRI", "SAT", "SUN"]
       d = days !! (nd-1)
       p = np
-   in mapM_ (exInsertTmt conn . insvc p d) vcells
-  where insvc p d (a,_,c,_) = (a,getSectno(c),d,p)
+   in mapM_ (\c -> insvc p d c >>= exInsertTmt conn) vcells
+  where insvc p d (a,_,c,_) = do
+          sectno <- getSectno c
+          return (a,sectno,d,p)
 
 
 insertTmts :: Connection -> Pcells -> IO ()
