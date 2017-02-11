@@ -3,6 +3,7 @@ module Prompt where
 
 --import Data.Either
 import Data.List (findIndex)
+import Data.Char (isNumber)
 
 -- get user input satisfies given predicate
 -- repeat asking when pred fails.
@@ -74,3 +75,9 @@ promptLinesOf check = do
                  | check str = fmap (str:) $ promptLinesOf check
                  | otherwise = putStrLn "***Error: not aceptable"
                                 >> promptLinesOf check
+
+getNumber :: String -> IO Int
+getNumber pstr = putStr pstr >> getAnsWith (\s ->
+  if not (null s) && all isNumber s
+  then Right (read s :: Int)
+  else Left $ "please enter a number\n" ++ pstr)

@@ -250,10 +250,8 @@ insertCourse conn (crs,_,tlt',cre',req') =
       [] -> do
         putStrLn "could not parse credit from.."
         putStrLn $ "\"" ++ cre' ++ "\""
-        putStr "please enter manually\ncre: "
-        getAnsWith (\s -> if all isNumber s
-                          then Right $ (read s :: Int)
-                          else Left "please enter a number\ncre: ")
+        putStrLn "please enter manually"
+        getNumber "cre: "
     getreqs = case parse_requir req' of
       Right ls -> return . map nullize $ ls ++ ["","",""]
       Left _ -> do
