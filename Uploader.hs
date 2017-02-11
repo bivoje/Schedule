@@ -49,25 +49,30 @@ data Teach = PR String
 
 -- excute given (probably inserting query) io action
 -- if MySQLError occurs, handle it
-exInsertHandler :: (QueryParams q, Show q)
+exInsertHandler :: (QueryParams q, Show q, Read q)
                 => (q -> IO Bool) -> q -> IO Bool
 exInsertHandler act q =
   catchJust f (act q) (handleInsert act q)
-  where
-    f e = let enum = errNumber e in if enum == 1062 then Just enum else Nothing
-    -- 1452
+  where f e = if errNumber e `elem` [1062, 1452]
+              then Just (errNumber e) else Nothing
 
 
 -- handle MySQLError exception
-handleInsert :: (QueryParams q, Show q) => (q -> IO Bool) -> q -> Int -> IO Bool
-handleInsert act q 1062 = do
-      putStrLn $ "dupkey error occured while inserting " ++ show q
-      putStr "as you want, (retry/continue(skip)/halt(quit)):"
-      ans <- getAnsWithin "please answer in (r/c/h): " ["r", "c", "h"]
-      case ans of 0 -> exInsertHandler act q
-                  1 -> return False
-                  2 -> throw $ userError "halt during inserting tmp prof"
-
+handleInsert :: (QueryParams q, Show q, Read q) => (q -> IO Bool) -> q -> Int -> IO Bool
+handleInsert act q eno = do
+  putStrLn $ case eno of
+    1062 -> "dupkey error occured while inserting " ++ show q
+    1452 -> "foreign key constraints failed inserting " ++ show q
+  putStr "retry/skip/input/halt : "
+  ans <- getAnsWithin "please answer in (r/s/i/h): " ["r", "s", "i", "h"]
+  case ans of 0 -> exInsertHandler act q
+              1 -> return False
+              2 -> readq >>= exInsertHandler act
+              3 -> throw $ userError "halt during inserting tmp prof"
+  where readq = putStrLn "arg: " >> getAnsWith (\s -> case reads s of
+          [(a,"")] -> Right a
+          [(a,t)] -> Left ("Trailing characters \"" ++ t ++ "\"")
+          [] -> Left "could not parse!! re-enter\n arg: ")
 
 -- check whether db know the name (field) already
 -- 'Query' argument is a kind of trick makin use of
@@ -192,8 +197,8 @@ insertProfs conn tbl = do
 
 -- get the sect number from the title field
 readsCredit :: String -> [(Int,String)]
-readsCredit str =
-  reads $ takeWhileEnd (/=':') str :: [(Int,String)]
+readsCredit =
+  reads . takeWhileEnd isNumber
 
 
 -- gets the strings to insert db from parsed one
