@@ -32,8 +32,9 @@ indentError ind e = unlines . map (ind ++ ) . lines $ show e
 -- unhandled exception:
 --   those circumstances that continueing is undesirable
 --   recovery possible only if we restart the task
-taskHandle :: String -> IO a -> IO (Maybe a)
-taskHandle tstr action =
+taskHandle' :: (String -> IO a -> IO (Maybe a))
+            -> String -> IO a -> IO (Maybe a)
+taskHandle' reta tstr action =
   catchJust f (fmap Just action) h `catches`
     [ Handler (\ (e :: MySQLError ) -> h e)
     , Handler (\ (e :: FormatError) -> h e)
@@ -48,14 +49,15 @@ taskHandle tstr action =
       putStrLn "Unhandled Exception occured"
       putStr $ indentError "  " e
       putStrLn $ "Do you want to run the task (" ++ tstr ++ ") again?"
-      retask tstr action
+      reta tstr action
 
 
 -- ask user y/n and do the task if anser is yes
 retask :: String -> IO a -> IO (Maybe a)
 retask tstr action = do
   b <- askYesNo "Yes/No: "
-  if b then taskHandle tstr action  else return Nothing
+  if b then taskHandle' retask tstr action
+       else return Nothing
 
 
 -- enboxes given io action with task (user interpreting handler)
@@ -66,6 +68,28 @@ task :: String -> IO a -> MaybeT IO a
 task tstr action = MaybeT $ do
   putStrLn $ "task: " ++ tstr
   retask tstr action
+
+
+-- does same work as retask, with appeded 'skip' option
+retask_ :: String -> IO a -> IO (Maybe ())
+retask_ tstr action = do
+  i <- getAnsWithin "Yes/No/Skip: " [
+         "y","n","s",
+         "Y","N","S",
+         "yes","no","skip",
+         "Yes","No","Skip",
+         "YES","NO","SKIP"]
+  case mod i 3 of
+    0 -> taskHandle' retask_ tstr (action >> return ())
+    1 -> return Nothing
+    2 -> return (Just ())
+
+-- this function throw away the result of action.
+-- just like mapM_ does
+task_ :: String -> IO a -> MaybeT IO ()
+task_ tstr action = MaybeT $ do
+  putStrLn $ "task: " ++ tstr
+  retask_ tstr action
 
 
 -- enboxes a parsing action (io $ parse + parser + stream)
@@ -88,12 +112,12 @@ insertTask action = do
 runTask conn = runMaybeT $ do
   obl <- task "loading openlects" $ parsingTask (parse_openlects "ex_openlects")
   tbl <- task "loading timetable" $ parsingTask (parse_timetable "ex_timetable")
-  task "inserting professors" $ insertTask (insertProfs conn obl)
-  task "inserting courses" $ insertTask (insertCourses conn obl)
-  task "inserting sections" $ insertTask (insertSects conn obl)
+  task_ "inserting professors" $ insertTask (insertProfs conn obl)
+  task_ "inserting courses" $ insertTask (insertCourses conn obl)
+  task_ "inserting sections" $ insertTask (insertSects conn obl)
   -- wee need to edit insertRooms/Tmts 's return
-  task "inserting rooms" $ insertTask (insertRooms conn tbl >> return 0)
-  task "inserting timetable" $ insertTask (insertTmts conn tbl >> return 0)
+  task_ "inserting rooms" $ insertTask (insertRooms conn tbl >> return 0)
+  task_ "inserting timetable" $ insertTask (insertTmts conn tbl >> return 0)
 
 
 
