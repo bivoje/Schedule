@@ -125,25 +125,24 @@ runTask conn = runMaybeT $ do
 -- main
 
 
-
--- access info to database
--- FIXME currently, information of test database 'Tchedule'
-mydefaultConnectInfo :: ConnectInfo
-mydefaultConnectInfo =
-  defaultConnectInfo { connectHost = "192.168.0.4"
-                     , connectUser = "scheduleM"
-                     , connectDatabase = "Tchedule"
-                     }
-
-
--- ask user for passwd to db, then connect to it
--- FIXME getting passwd using getLine reveals passwd to screan
-connectWithPasswd :: IO Connection
-connectWithPasswd = do
+-- ask user for information then connect to db server
+connectPrompt :: IO Connection
+connectPrompt = do
+  putStrLn "enter connection information"
+  u <- putStr "user: " >> getLine
+  h <- putStr "host: " >> getLine
+  p <- getNumber "port: "
+  d <- putStr "dtbs: " >> getLine
+  pws <- putStr "passwd: " >> getLine
+  putStrLn "" -- stdin's newline (enter) not echoed
   putStrLn "connecting to db.."
-  putStr "passwd: "
-  psw <- getLine
-  connect mydefaultConnectInfo {connectPassword=psw}
+  connect defaultConnectInfo
+    { connectHost = h
+    , connectPort = fromInteger $ toInteger p
+    , connectUser = u
+    , connectDatabase = d
+    , connectPassword = pws
+    }
 
 
 -- main functions
@@ -152,7 +151,7 @@ connectWithPasswd = do
 main :: IO ()
 main = do
   hSetBuffering stdin LineBuffering
-  bracket (connectWithPasswd) close runTask
+  bracket (connectPrompt) close runTask
     `catch` (\(e::MySQLError) -> do
        putStrLn "check your connection to db"
        putStr $ indentError "  " e
