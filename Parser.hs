@@ -53,8 +53,7 @@ school num = do
   lss <- many1 (opl_row num) >>= followedBy (try newline >> eof)
   let l = head lss
       scl = head l
-      ss = tail lss
-   in return $ map ((scl :) . tail) ss
+   in return $ map ((scl :) . tail) lss
  
 -- :: [String]
 -- read a row, any data in openlects is consist of a row
