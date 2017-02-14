@@ -71,20 +71,30 @@ task tstr action = MaybeT $ do
 -- enboxes a parsing action (io $ parse + parser + stream)
 -- to compatible with task function
 -- throws unhandled exception 'ParseError' when parsing fails
-parsingTask :: String -> IO (Either P.ParseError a) -> MaybeT IO a
-parsingTask tstr pa = task tstr $ do
+parsingTask :: IO (Either P.ParseError a) -> IO a
+parsingTask pa = do
   ret <- pa
   case ret of Left e -> throw e
               Right a -> return a
 
 
+insertTask :: IO Int -> IO ()
+insertTask action = do
+  n <- action
+  putStrLn $ "inserted " ++ show n ++ " elements"
+
+
 -- run necessary tasks for uploading in sequence
 runTask conn = runMaybeT $ do
-  otbl <- parsingTask "loading openlects" (parse_openlects "ex_openlects")
-  ttbl <- parsingTask "loading timetable" (parse_timetable "ex_timetable")
-  --task "inserting Professor" (insertProf otbl)
+  obl <- task "loading openlects" $ parsingTask (parse_openlects "ex_openlects")
+  tbl <- task "loading timetable" $ parsingTask (parse_timetable "ex_timetable")
+  task "inserting professors" $ insertTask (insertProfs conn obl)
+  task "inserting courses" $ insertTask (insertCourses conn obl)
+  task "inserting sections" $ insertTask (insertSects conn obl)
+  -- wee need to edit insertRooms/Tmts 's return
+  task "inserting rooms" $ insertTask (insertRooms conn tbl >> return 0)
+  task "inserting timetable" $ insertTask (insertTmts conn tbl >> return 0)
 
-  return ()
 
 
 ----------------------------------------------------------------------
