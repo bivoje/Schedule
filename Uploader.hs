@@ -413,12 +413,12 @@ getSectno str =
 -- merely excutes the query to db
 -- (room, crsid, sectno)
 -- always success (since it's update
-exInsertRoom :: Connection -> (String,String,Int) -> IO ()
-exInsertRoom conn tup =
+exInsertRoom :: Connection -> (String,String,Int) -> IO Bool
+exInsertRoom conn arg =
   -- FIXME not doing any exception handling
   -- since this is not a 'insertion', we can't use InsertHandler
   -- nothing happens if (crsid,sectno) not found in db
-  execute conn updq tup >> return ()
+  exInsertHandler (\q -> execute conn updq q >> return True) arg
   where updq = "\
     \ UPDATE section \
     \ SET room = ? \
@@ -427,10 +427,11 @@ exInsertRoom conn tup =
 
 
 -- update table 'section' with room the infomation
-insertRooms :: Connection -> Pcells -> IO ()
+insertRooms :: Connection -> Pcells -> IO Int
 insertRooms conn pcells =
   let vcells = filterNoRoom . concat . concat $ pcells
-   in mapM_ (\c -> g c >>= exInsertRoom conn) vcells
+   in mapM (\c -> g c >>= exInsertRoom conn) vcells
+      >>= return . length . filter id
   where filterNoRoom = filter f
         f (_,_,_,d) = not $ null d
         g (a,b,c,d) = do
@@ -444,10 +445,9 @@ insertRooms conn pcells =
 
 
 
-exInsertTmt :: Connection -> (String,Int,String, Int) -> IO ()
+exInsertTmt :: Connection -> (String,Int,String, Int) -> IO Bool
 exInsertTmt conn arg =
-  print arg >>
-  execute conn insq arg >> return ()
+  exInsertHandler (\q -> execute conn insq q >> return True) arg
   where insq = "\
     \ INSERT INTO \
     \   class (crsid,sectno,day,period) \
@@ -455,19 +455,22 @@ exInsertTmt conn arg =
     \;"
 
 
-insertVcells :: Connection -> Int -> Int -> Vcells -> IO ()
+insertVcells :: Connection -> Int -> Int -> Vcells -> IO Int
 insertVcells conn np nd vcells =
   let days = ["MON", "TUE", "WED", "THR", "FRI", "SAT", "SUN"]
       d = days !! (nd-1)
       p = np
-   in mapM_ (\c -> insvc p d c >>= exInsertTmt conn) vcells
+  in do
+    bs <- mapM (\c -> insvc p d c >>= exInsertTmt conn) vcells
+    return . length $ filter id bs
   where insvc p d (a,_,c,_) = do
           sectno <- getSectno c
           return (a,sectno,d,p)
 
 
-insertTmts :: Connection -> Pcells -> IO ()
-insertTmts conn pcells =
-  mapM_ (uncurry insp) $ zip [1..] (filterEmpty pcells)
+insertTmts :: Connection -> Pcells -> IO Int
+insertTmts conn pcells = do
+  ns <- mapM (uncurry insp) $ zip [1..] (filterEmpty pcells)
+  return . sum . concat $ ns
   where insp p pcell =
-          mapM_ (uncurry $ insertVcells conn p) $ zip [1..] pcell
+          mapM (uncurry $ insertVcells conn p) $ zip [1..] pcell

@@ -117,8 +117,8 @@ runTask conn = runMaybeT $ do
   task_ "inserting courses" $ insertTask (insertCourses conn obl)
   task_ "inserting sections" $ insertTask (insertSects conn obl)
   -- wee need to edit insertRooms/Tmts 's return
-  task_ "inserting rooms" $ insertTask (insertRooms conn tbl >> return 0)
-  task_ "inserting timetable" $ insertTask (insertTmts conn tbl >> return 0)
+  task_ "inserting rooms" $ insertTask (insertRooms conn tbl)
+  task_ "inserting timetable" $ insertTask (insertTmts conn tbl)
 
 
 
