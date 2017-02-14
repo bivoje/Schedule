@@ -63,8 +63,7 @@ handleInsert act q eno = do
   putStrLn $ case eno of
     1062 -> "dupkey error occured while inserting " ++ show q
     1452 -> "foreign key constraints failed inserting " ++ show q
-  putStr "retry/skip/input/halt : "
-  ans <- getAnsWithin "please answer in (r/s/i/h): " ["r", "s", "i", "h"]
+  ans <- getAnsWithin "retry/skip/input/halt" ["r", "s", "i", "h"]
   case ans of 0 -> exInsertHandler act q
               1 -> return False
               2 -> readq >>= exInsertHandler act

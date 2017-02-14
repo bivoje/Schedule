@@ -19,26 +19,24 @@ getAnsWith pred = do
 
 
 -- get user input within given candidates
--- pstr is for for folloing prompt after failing to match within candidatets
--- the first prompt should be printed before this function
+-- str is candidate string like "yes/no"
+-- it generates the first and following prompt itself
 -- returns index of user's answer
 getAnsWithin :: String -> [String] -> IO Int
-getAnsWithin pstr cand =
-  getAnsWith f
+getAnsWithin cstr cand =
+  putStr (cstr ++ ": ") >> getAnsWith f
   where f :: String -> Either String Int
         f s = case findIndex (==s) cand of
                 Just i -> Right i
-                _      -> Left pstr
+                _      -> Left ("please answer within " ++ cstr ++ ": ")
 
 
 -- get user answer in y/n
 -- pstr is for first & following prompt
-askYesNo :: String -> IO Bool
-askYesNo pstr =
+askYesNo :: IO Bool
+askYesNo =
   let cand = ["y","n","Y","N","yes","no","Yes","No","YES","NO"]
-      pstr' = "please answer in yes/no\n" ++ pstr
-   in do putStr pstr
-         ansi <- getAnsWithin pstr' cand
+   in do ansi <- getAnsWithin "yes/no" cand
          return $ even ansi
 
 

@@ -55,7 +55,7 @@ taskHandle' reta tstr action =
 -- ask user y/n and do the task if anser is yes
 retask :: String -> IO a -> IO (Maybe a)
 retask tstr action = do
-  b <- askYesNo "Yes/No: "
+  b <- askYesNo
   if b then taskHandle' retask tstr action
        else return Nothing
 
@@ -70,10 +70,11 @@ task tstr action = MaybeT $ do
   retask tstr action
 
 
+-- TODO lower case the input? -> case insesitive
 -- does same work as retask, with appeded 'skip' option
 retask_ :: String -> IO a -> IO (Maybe ())
 retask_ tstr action = do
-  i <- getAnsWithin "Yes/No/Skip: " [
+  i <- getAnsWithin "yes/no/skip" [
          "y","n","s",
          "Y","N","S",
          "yes","no","skip",
