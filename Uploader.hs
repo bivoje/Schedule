@@ -61,17 +61,17 @@ exInsertHandler act q =
 handleInsert :: (QueryParams q, Show q, Read q) => (q -> IO Bool) -> q -> Int -> IO Bool
 handleInsert act q eno = do
   putStrLn $ case eno of
-    1062 -> "dupkey error occured while inserting " ++ show q
-    1452 -> "foreign key constraints failed inserting " ++ show q
+    1062 -> "dupkey error occured while inserting/updating " ++ show q
+    1452 -> "foreign key constraints failed inserting/updating " ++ show q
   ans <- getAnsWithin "retry/skip/input/halt" ["r", "s", "i", "h"]
   case ans of 0 -> exInsertHandler act q
               1 -> return False
               2 -> readq >>= exInsertHandler act
               3 -> throw $ userError "halt during inserting tmp prof"
-  where readq = putStrLn "arg: " >> getAnsWith (\s -> case reads s of
+  where readq = putStr "arg: " >> getAnsWith (\s -> case reads s of
           [(a,"")] -> Right a
           [(a,t)] -> Left ("Trailing characters \"" ++ t ++ "\"")
-          [] -> Left "could not parse!! re-enter\n arg: ")
+          [] -> Left "could not parse!! re-enter\narg: ")
 
 -- check whether db know the name (field) already
 -- 'Query' argument is a kind of trick makin use of
