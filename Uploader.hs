@@ -401,9 +401,9 @@ getSectno :: String -> IO Int
 getSectno str =
   case dropWhile (/='(') str of
     [] -> return 1
-    xs -> case reads $ takeWhile isNumber xs of
-      [(a,_)] -> return a
-      [] -> do
+    '(':xs -> case reads xs of
+      [(a,'반':_)] -> return a
+      _ -> do
         putStrLn "could not parse sect number from.."
         putStrLn $ "\"" ++ str ++ "\""
         putStrLn "please enter manually"
