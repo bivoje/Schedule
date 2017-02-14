@@ -215,35 +215,20 @@ refineTlts tlt' = let (tkr,tlt) = omitSpan (/='\n') tlt'
              in fromMaybe err $ lookup c [('Ⅱ','2'),('Ⅰ','1')]
 
 
--- merely excutes the insert query to db
-exInsertCourse :: Connection
-               -> (String,String,String,Int
-                  ,Int,Maybe String,Maybe String,Maybe String)
-               -> IO Bool
-exInsertCourse conn args =
-  exInsertHandler (\q -> execute conn insq q >> return True) args
-  where insq = "\
-    \ INSERT INTO \
-    \   course (crs_id, title, title_kr, credit, \
-    \   semester, requir1, requir2, requir3) \
-    \ VALUES (?,?,?,?,?,?,?,?) \
-    \ ;"
-
-
 -- insert single course, with given (unchecked) tuple data of strings
 insertCourse :: Connection
-             -> (String,String,String,String,String)
+             -> (String,String,String,String)
              -> IO Bool
 -- school (sch) value is aready in crs, we don't need it
 -- also, we don't utilize classify (cls) yet
-insertCourse conn (crs,_,tlt',cre',req') =
+insertCourse conn (crs,_,tlt',cre') =
   let (tlt,tkr) = refineTlts tlt'
       -- TODO this should be able to set manually
-      sme = 216
+      sme = 216 :: Int
   in do
     cre <- getcred
-    (rq1,rq2,rq3) <- getreqs >>= (\ls -> return (ls!!0,ls!!1,ls!!2))
-    exInsertCourse conn (crs,tlt,tkr,cre,sme,rq1,rq2,rq3)
+    args <- return (crs,tlt,tkr,cre,sme)
+    exInsertHandler (\q -> execute conn insq q >> return True) args
   where
     getcred = case readsCredit cre' of
       [(c,_)] -> return c
@@ -252,6 +237,20 @@ insertCourse conn (crs,_,tlt',cre',req') =
         putStrLn $ "\"" ++ cre' ++ "\""
         putStrLn "please enter manually"
         getNumber "cre: "
+    insq = "\
+      \ INSERT INTO \
+      \   course (crs_id, title, title_kr, credit, semester) \
+      \ VALUES (?,?,?,?,?) \
+      \ ;"
+
+
+updateCourse :: Connection -> (String,String)-> IO Bool
+updateCourse conn (crsid,req')= do
+  (rq1,rq2,rq3) <- getreqs >>= (\ls -> return (ls!!0,ls!!1,ls!!2))
+  args <- return (rq1,rq2,rq3,crsid)
+  --FIXME is it okay to use insert handler?
+  exInsertHandler (\q -> execute conn updq q >> return True) args
+  where
     getreqs = case parse_requir req' of
       Right ls -> return . map nullize $ ls ++ ["","",""]
       Left _ -> do
@@ -259,6 +258,11 @@ insertCourse conn (crs,_,tlt',cre',req') =
         putStrLn $ "\"" ++ req' ++ "\""
         putStrLn "please enter manually"
         getStrFields ["rq1", "rq2", "rq3"]
+    updq = "\
+      \ UPDATE course \
+      \ SET requir1 = ?, requir2 = ?, requir3 = ? \
+      \ WHERE crs_id = ? \
+      \ ;"
 
 
 -- top level of inserting to table 'course'
@@ -266,12 +270,17 @@ insertCourse conn (crs,_,tlt',cre',req') =
 -- returns the number of courses inserted
 insertCourses :: Connection -> [[String]] -> IO Int
 insertCourses conn tbl =
-  -- (crs_id, classify, title', credit', requir')
   let contbl = drop 2 tbl
-      nubtbl = map head $ groupBy ((==) `on` (!!3)) contbl
-      tups = map (\s -> (s!!2,s!!1,s!!3,s!!4,s!!9)) nubtbl
-      num = length tups
-   in fmap (length . filter id) $ mapM (insertCourse conn) tups
+      nubtbl = map head $ groupBy ((==) `on` (!!2)) contbl
+      -- (crs_id, classify, title', credit')
+      tups = map (\s -> (s!!2,s!!1,s!!3,s!!4)) nubtbl
+      -- (crs_id, requir')
+      reqs = map (\s -> (s!!2,s!!9)) nubtbl
+  in do
+    bs <- mapM (insertCourse conn) tups
+    putStrLn "now updating prerequisite field"
+    mapM (updateCourse conn) reqs
+    return . length $ filter id bs
 
 
 
