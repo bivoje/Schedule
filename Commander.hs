@@ -42,6 +42,7 @@ taskHandle' reta tstr action =
     , Handler (\ (e :: ResultError) -> h e)
     -- FIXME isn't this too inefficient?
     , Handler (\ (e :: ParseError ) -> h e)
+    , Handler (\ (e :: UploaderUserHalting) -> h e)
     ]
   where
     f e = if isDoesNotExistError e then Just e else Nothing

@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Uploader
-  ( insertProfs
+  ( UploaderUserHalting
+  , insertProfs
   , insertCourses
   , insertSects
   , insertRooms
@@ -46,6 +47,12 @@ data Teach = PR String
            | TA String
            deriving (Show, Read)
 
+data UploaderUserHalting = UploaderUserHalting
+
+instance Show UploaderUserHalting where
+  show e = "user halted during process"
+
+instance Exception UploaderUserHalting
 
 -- excute given (probably inserting query) io action
 -- if MySQLError occurs, handle it
@@ -67,7 +74,7 @@ handleInsert act q eno = do
   case ans of 0 -> exInsertHandler act q
               1 -> return False
               2 -> readq >>= exInsertHandler act
-              3 -> throw $ userError "halt during inserting tmp prof"
+              3 -> throw UploaderUserHalting
   where readq = putStr "arg: " >> getAnsWith (\s -> case reads s of
           [(a,"")] -> Right a
           [(a,t)] -> Left ("Trailing characters \"" ++ t ++ "\"")
