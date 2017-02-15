@@ -79,3 +79,10 @@ getNumber pstr = putStr pstr >> getAnsWith (\s ->
   if not (null s) && all isNumber s
   then Right (read s :: Int)
   else Left $ "please enter a number\n" ++ pstr)
+
+
+getNumberM :: String -> IO (Maybe Int)
+getNumberM pstr = putStr pstr >> getAnsWith f
+  where f s | null s = Right Nothing
+            | all isNumber s = Right $ Just (read s :: Int)
+            | otherwise = Left $ "please enter a number\n" ++ pstr
