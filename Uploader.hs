@@ -21,7 +21,7 @@ import Database.MySQL.Simple
 import Database.MySQL.Simple.QueryParams (QueryParams)
 import Database.MySQL.Base (MySQLError(..))
 
-import Parser (parse_requir)
+import Parser (parse_requir,parse_credit)
 import Prompt
 
 
@@ -202,9 +202,27 @@ insertProfs conn tbl = do
 
 
 -- get the sect number from the title field
-readsCredit :: String -> [(Int,String)]
-readsCredit =
-  reads . takeWhileEnd isNumber
+getCredit :: String -> IO (Maybe Int)
+getCredit "" = return Nothing
+getCredit str = case parse_credit str of
+  Right (_,_,x) -> return (Just x)
+  Left _ -> do
+    putStrLn "could not parse credit from.."
+    putStrLn $ "\"" ++ str ++ "\""
+    putStrLn "please enter manually"
+    getNumberM "cre: "
+
+
+getRequir :: String -> IO (Maybe String, Maybe String, Maybe String)
+getRequir "" = return (Nothing, Nothing, Nothing)
+getRequir str = case parse_requir str of
+  Right ls -> return . map nullize $ ls ++ ["","",""]
+  Left _ -> do
+    putStrLn "could not parse requir list from.."
+    putStrLn $ "\"" ++ str ++ "\""
+    putStrLn "please enter manually"
+    getStrFields ["rq1", "rq2", "rq3"]
+  >>= (\ls -> return (ls!!0,ls!!1,ls!!2))
 
 
 -- gets the strings to insert db from parsed one
@@ -230,17 +248,10 @@ insertCourse :: Connection
 insertCourse conn (crs,_,tlt',cre') =
   let (tlt,tkr) = refineTlts tlt'
   in do
-    cre <- getcred
+    cre <- getCredit cre'
     args <- return (crs,tlt,tkr,cre)
     exInsertHandler (\q -> execute conn insq q >> return True) args
   where
-    getcred = case readsCredit cre' of
-      [(c,_)] -> return c
-      [] -> do
-        putStrLn "could not parse credit from.."
-        putStrLn $ "\"" ++ cre' ++ "\""
-        putStrLn "please enter manually"
-        getNumber "cre: "
     insq = "\
       \ INSERT INTO \
       \   course (crs_id, title, title_kr, credit) \
@@ -250,18 +261,11 @@ insertCourse conn (crs,_,tlt',cre') =
 
 updateCourse :: Connection -> (String,String)-> IO Bool
 updateCourse conn (crsid,req')= do
-  (rq1,rq2,rq3) <- getreqs >>= (\ls -> return (ls!!0,ls!!1,ls!!2))
+  (rq1,rq2,rq3) <- getRequir req'
   args <- return (rq1,rq2,rq3,crsid)
   --FIXME is it okay to use insert handler?
   exInsertHandler (\q -> execute conn updq q >> return True) args
   where
-    getreqs = case parse_requir req' of
-      Right ls -> return . map nullize $ ls ++ ["","",""]
-      Left _ -> do
-        putStrLn "could not parse requir list from.."
-        putStrLn $ "\"" ++ req' ++ "\""
-        putStrLn "please enter manually"
-        getStrFields ["rq1", "rq2", "rq3"]
     updq = "\
       \ UPDATE course \
       \ SET requir1 = ?, requir2 = ?, requir3 = ? \
@@ -313,7 +317,7 @@ getEnrol str = case reads str :: [(Int,String)] of
   _ -> do
     putStrLn "could not parse enrol number from.."
     putStrLn $ "\"" ++ str ++ "\""
-    putStr "please enter manually"
+    putStrLn "please enter manually"
     getNumberM "enrol: "
 
 
@@ -347,7 +351,7 @@ getProfFromTmp conn str = do
   where
     promptTeachers ts = do
       -- shouldn't we show the name title or something?
-      putStrLn "could not get pr/ta properly from cache of.."
+      putStrLn "could not get pr/ta properly from cache.."
       putStrLn $ "\"" ++ str ++ "\""
       putStrLn "please enter manually"
       getManualTeachPair

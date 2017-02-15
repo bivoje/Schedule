@@ -5,13 +5,13 @@ module Parser
   ( parse_openlects
   , parse_timetable
   , parse_requir
+  , parse_credit
   , ParseError
   ) where
 
-import Data.Char (isSpace)
+import Data.Char (isSpace,isNumber)
 import Data.List
 import Text.Parsec
-import Text.Parsec.Token
 
 
 -------------------------------------------------------------------
@@ -118,11 +118,25 @@ tmt_row = do
 
 
 -------------------------------------------------------------------
--- Primary
+-- Primitives
+
+-- parse credit
+parse_credit s =
+  parse (do
+    gang <- natural
+    char ':'
+    sil <- natural
+    char ':'
+    hak <- natural
+    return (gang,sil,hak)
+  ) "" s
+  where natural = do
+          n <- many1 (satisfy isNumber)
+          return (read n :: Int)
 
 -- parse the 'requir' field
 parse_requir s = parse p "" s
-  where p = sepBy word (string "또는" <|> string "or")
+  where p = word `sepBy` (string "또는" <|> string "or")
 
 
 -- read a horizontally merged cell
