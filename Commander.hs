@@ -129,13 +129,13 @@ runTask conn = runMaybeT $ do
 
 -- ask user for information then connect to db server
 connectPrompt :: IO Connection
-connectPrompt = do
+connectPrompt = withBuff stdin LineBuffering $ do
   putStrLn "enter connection information"
   u <- putStr "user: " >> getLine
   h <- putStr "host: " >> getLine
   p <- getNumber "port: "
   d <- putStr "dtbs: " >> getLine
-  pws <- putStr "passwd: " >> getLine
+  pws <- putStr "passwd: " >> withEcho stdin False getLine
   putStrLn "" -- stdin's newline (enter) not echoed
   putStrLn "connecting to db.."
   connect defaultConnectInfo
@@ -145,6 +145,13 @@ connectPrompt = do
     , connectDatabase = d
     , connectPassword = pws
     }
+  where
+    withEcho s echo act = do
+      old <- hGetEcho s
+      bracket_ (hSetEcho s echo) (hSetEcho s old) act
+    withBuff s b a = do
+      o <- hGetBuffering s
+      bracket (hSetBuffering s b) (const $ hSetBuffering s o) (const a)
 
 
 -- main functions
