@@ -298,6 +298,18 @@ instance Ord Teach where
   (TA _) <= (PR _) = True
 -}
 
+
+getEnrol :: String -> IO (Maybe Int)
+getEnrol "" = return Nothing
+getEnrol str = case reads str :: [(Int,String)] of
+  [(a,'명':_)] -> return $ Just a
+  _ -> do
+    putStrLn "could not parse enrol number from.."
+    putStrLn $ "\"" ++ str ++ "\""
+    putStr "please enter manually"
+    getNumberM "enrol: "
+
+
 getCacheProf :: Connection -> String -> IO [Teach]
 getCacheProf conn str = do
   sel <- query conn selq (Only str)
@@ -337,12 +349,11 @@ getProfFromTmp conn str = do
 insertSect :: Connection -> Int -> (String,String,String,String,Int)
              -> IO Bool
 -- we can check secn (int) with sectno (string) but we don't..
-insertSect conn secn (_,crsid,prof',enrol',sme) =
-  let enrol = fmap fst . listToMaybe $ (reads enrol' :: [(Int,String)])
-  in do
-    (prof,ta) <- getProfFromTmp conn prof'
-    args <- return (secn,crsid,prof,ta,enrol,sme)
-    exInsertHandler (\q -> execute conn insq q >> return True) args
+insertSect conn secn (_,crsid,prof',enrol',sme) = do
+  enrol <- getEnrol enrol'
+  (prof,ta) <- getProfFromTmp conn prof'
+  args <- return (secn,crsid,prof,ta,enrol,sme)
+  exInsertHandler (\q -> execute conn insq q >> return True) args
   where insq = "\
     \ INSERT INTO \
     \   section (sect_no, crsid, prof, ta, enroll_size,sme) \
