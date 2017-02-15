@@ -222,11 +222,9 @@ insertCourse :: Connection
 -- also, we don't utilize classify (cls) yet
 insertCourse conn (crs,_,tlt',cre') =
   let (tlt,tkr) = refineTlts tlt'
-      -- TODO this should be able to set manually
-      sme = 216 :: Int
   in do
     cre <- getcred
-    args <- return (crs,tlt,tkr,cre,sme)
+    args <- return (crs,tlt,tkr,cre)
     exInsertHandler (\q -> execute conn insq q >> return True) args
   where
     getcred = case readsCredit cre' of
@@ -238,8 +236,8 @@ insertCourse conn (crs,_,tlt',cre') =
         getNumber "cre: "
     insq = "\
       \ INSERT INTO \
-      \   course (crs_id, title, title_kr, credit, semester) \
-      \ VALUES (?,?,?,?,?) \
+      \   course (crs_id, title, title_kr, credit) \
+      \ VALUES (?,?,?,?) \
       \ ;"
 
 
@@ -329,29 +327,30 @@ getProfFromTmp conn str = do
              _ -> promptTeachers ts
   where
     promptTeachers ts = do
+      -- shouldn't we show the name title or something?
       putStrLn "could not get pr/ta properly from cache of.."
       putStrLn $ "\"" ++ str ++ "\""
       putStrLn "please enter manually"
       getManualTeachPair
 
 
-insertSect :: Connection -> Int -> (String,String,String,String)
+insertSect :: Connection -> Int -> (String,String,String,String,Int)
              -> IO Bool
 -- we can check secn (int) with sectno (string) but we don't..
-insertSect conn secn (_,crsid,prof',enrol') =
+insertSect conn secn (_,crsid,prof',enrol',sme) =
   let enrol = fmap fst . listToMaybe $ (reads enrol' :: [(Int,String)])
   in do
     (prof,ta) <- getProfFromTmp conn prof'
-    args <- return (secn,crsid,prof,ta,enrol)
+    args <- return (secn,crsid,prof,ta,enrol,sme)
     exInsertHandler (\q -> execute conn insq q >> return True) args
   where insq = "\
     \ INSERT INTO \
-    \   section (sect_no, crsid, prof, ta, enroll_size) \
-    \ VALUES (?,?,?,?,?); \
+    \   section (sect_no, crsid, prof, ta, enroll_size,sme) \
+    \ VALUES (?,?,?,?,?,?); \
     \ "
 
 
-insertSectGrp :: Connection -> [(String,String,String,String)] -> IO Int
+insertSectGrp :: Connection -> [(String,String,String,String,Int)] -> IO Int
 insertSectGrp conn grps =
   let ex = mapM (uncurry $ insertSect conn) $ zip [1..] grps
    in fmap (length . filter id) ex
@@ -363,8 +362,11 @@ insertSects conn tbl =
   let contbl = drop 2 tbl
       tups = map (\s -> (s!!7,s!!2,s!!5,s!!8)) contbl
       gtups = groupBy ((==) `on` snd4) tups
-   in fmap sum $ mapM (insertSectGrp conn) gtups
+  in do
+    sme <- getNumber "semester code: "
+    fmap sum $ mapM (insertSectGrp conn . map (apn4 sme)) gtups
   where snd4 (_,b,_,_) = b
+        apn4 e (a,b,c,d) = (a,b,c,d,e)
 
 
 

@@ -29,9 +29,6 @@ CREATE TABLE IF NOT EXISTS course (
   title VARCHAR(100) NOT NULL,
   title_kr NVARCHAR(100) NOT NULL,
   credit TINYINT NOT NULL,
-  -- semester = season (1|2|3|4) * 100 + year (last 2)
-  -- 2017 Summer -> 2 * 100 + 17 = 217
-  semester SMALLINT NOT NULL CHECK (100 <= semester AND semester < 500),
   /* requir 1, 2, 3 will be filled sequentially
      assume there be not more than 3 requir */
   requir1 CHAR(6) NULL,
@@ -52,6 +49,9 @@ CREATE TABLE IF NOT EXISTS section (
   ta NVARCHAR(50) NULL,
   room NVARCHAR(20) NULL,
   enroll_size SMALLINT NULL,
+  -- semester = season (1|2|3|4) * 100 + year (last 2)
+  -- 2017 Summer -> 2 * 100 + 17 = 217
+  semester SMALLINT NOT NULL CHECK (100 <= semester AND semester < 500),
   CONSTRAINT FOREIGN KEY (crsid) REFERENCES course (crs_id),
   CONSTRAINT FOREIGN KEY (prof) REFERENCES professor (name),
   CONSTRAINT FOREIGN KEY (ta) REFERENCES ta (name),
