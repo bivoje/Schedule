@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Types.Internal where
 
@@ -7,6 +9,7 @@ import Data.Set (Set)
 import qualified Data.Set as S
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.ByteString (ByteString)
 import Data.Function
 import Control.Monad
 
@@ -18,6 +21,19 @@ import Data.String
  - But it's only for debugging purpose and should not
  - be utilized in actual code
 -}
+
+
+-- represents most of strings (String, Text, ByteString, etc)
+-- IsString for string literal
+-- Eq for pattern matching
+-- Monoid for appending
+class (IsString s, Eq s, Monoid s) => IString s
+
+instance IString String where
+
+instance IString Text where
+
+instance IString ByteString where
 
 
 -- 4 seasons(terms) of semester
@@ -62,13 +78,13 @@ data School = GS | PS | CH | BS | EC | MC | MA | EV
   deriving (Eq, Show, Read, Ord, Enum, Bounded)
 
 -- use this instead of show function
-schoolTstring :: IsString s => School -> s
+schoolTstring :: IString s => School -> s
 schoolTstring s = case s of {
    GS -> "GS"; PS -> "PS"; CH -> "CH"; BS -> "BS";
    EC -> "EC"; MC -> "MC"; MA -> "MA"; EV -> "EV";
 }
 
-stringTschool :: (IsString s, Eq s) => s -> Maybe School
+stringTschool :: IString s => s -> Maybe School
 stringTschool s = case s of {
   "GS" -> Just GS; "PS" -> Just PS; "CH" -> Just CH; "BS" -> Just BS;
   "EC" -> Just EC; "MC" -> Just MC; "MA" -> Just MA; "EV" -> Just EV;
