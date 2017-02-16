@@ -10,6 +10,15 @@ import qualified Data.Text as T
 import Data.Function
 import Control.Monad
 
+import Data.String
+
+{-
+ - WARNING!!
+ - most of the types in this module derives Show/Read instance.
+ - But it's only for debugging purpose and should not
+ - be utilized in actual code
+-}
+
 
 -- 4 seasons(terms) of semester
 -- TODO what about 3 terms?
@@ -52,30 +61,42 @@ data Semester = Semester Int Season
 data School = GS | PS | CH | BS | EC | MC | MA | EV
   deriving (Eq, Show, Read, Ord, Enum, Bounded)
 
+-- use this instead of show function
+schoolTstring :: IsString s => School -> s
+schoolTstring s = case s of {
+   GS -> "GS"; PS -> "PS"; CH -> "CH"; BS -> "BS";
+   EC -> "EC"; MC -> "MC"; MA -> "MA"; EV -> "EV";
+}
+
+stringTschool :: (IsString s, Eq s) => s -> Maybe School
+stringTschool s = case s of {
+  "GS" -> Just GS; "PS" -> Just PS; "CH" -> Just CH; "BS" -> Just BS;
+  "EC" -> Just EC; "MC" -> Just MC; "MA" -> Just MA; "EV" -> Just EV;
+  _    -> Nothing;
+}
 
 -- required by tojson instance of crsid
 instance ToJSON School where
-  toJSON = toJSON . show
-
+  toJSON = toJSON . (schoolTstring :: School -> Text)
 
 -- required by tojson instance of crsid
 instance FromJSON School where
-  parseJSON (String s) = case s of
-    "GS" -> return GS
-    "PS" -> return PS
-    "CH" -> return CH
-    "BS" -> return BS
-    "EC" -> return EC
-    "MC" -> return MC
-    "MA" -> return MA
-    "EV" -> return EV
-    _    -> mzero
+  parseJSON (String s) = maybe mzero return . stringTschool $ s
 
 
 -- course id (e.g. GS1101)
 -- TODO what if Int < 1000 ?
 --  GS011 -> GS0011 ?
-type Crsid = (School,Int)
+newtype Crsid = Crsid (School,Int)
+  deriving (Eq, Show, Read, Ord)
+
+-- required by tojson instance of refcrs
+instance ToJSON Crsid where
+  toJSON (Crsid c) = toJSON c
+
+-- required by tojson instance of refsect
+instance FromJSON Crsid where
+  parseJSON x = Crsid <$> parseJSON x
 
 
 -- Lectime {Monday 3} : third lecture time on Monday
@@ -96,12 +117,12 @@ data Prof = Prof
   , prof_office :: RoomId
   , prof_full   :: Bool -- whether full or part time
   , prof_email  :: Text
-  } deriving Show
+  } deriving (Show, Read)
 
 
 -- ta data TeachAssi {name}
 data TeachAssi = TeachAssi Text
-  deriving Show
+  deriving (Show, Read)
 
 
 -- course data
@@ -111,7 +132,7 @@ data Course = Course
   , title_kr :: Text
   , credit   :: Int
   , requir   :: Set Crsid
-  } deriving Show
+  } deriving (Show, Read)
 
 
 -- section data
@@ -124,11 +145,12 @@ data Section = Section
   , roomid  :: RoomId
   , enroll_size :: Int
   , semester :: Semester
-  } deriving Show
+  } deriving (Show, Read)
 
 
 -- wrap Course to treate it by (only) it's primary key (crsid)
 newtype RefCrs = RefCrs Course
+  deriving (Show, Read)
 
 instance Eq RefCrs where
   (RefCrs a) == (RefCrs b) =
@@ -138,15 +160,13 @@ instance Ord RefCrs where
   (RefCrs a) <= (RefCrs b) =
     ((<=) `on` crs_id) a b
 
-instance Show RefCrs where
-  show (RefCrs a) = "{crs = " ++ show (crs_id a) ++ "}"
-
 instance ToJSON RefCrs where
   toJSON (RefCrs rc) = toJSON (crs_id rc)
 
 
 -- wrap Section to treate it by (only) it's primary key (crsid, sectno)
 newtype RefSect = RefSect Section
+  deriving (Show, Read)
 
 instance Eq RefSect where
   (RefSect a) == (RefSect b) =
@@ -158,10 +178,6 @@ instance Ord RefSect where
     | ((>) `on` crsid) a b = False
     | ((<) `on` crsid) a b = True
     | otherwise = ((<=) `on` sectno) a b
-
-instance Show RefSect where
-  show (RefSect a) = "{crs = " ++ show (crsid a)
-    ++ ", sct = " ++ show (sectno a) ++ "}"
 
 instance ToJSON RefSect where
   toJSON (RefSect rs) =
