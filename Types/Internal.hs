@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+module Types.Internal where
+
 import Data.Aeson
 import Data.Set (Set)
 import qualified Data.Set as S
