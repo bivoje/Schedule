@@ -11,6 +11,8 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.ByteString (ByteString)
 import Data.Function
+import Data.List (splitAt)
+import Data.Char (isNumber)
 import Control.Monad
 
 import Data.String
@@ -35,6 +37,15 @@ instance IString Text where
 
 instance IString ByteString where
 
+
+wrap :: (c -> d) -> (a -> b -> c) -> a -> b -> d
+wrap f g = (\a b -> f (g a b))
+
+-- it should have imported with Data.Monoid
+-- but somehow it didin't
+infixr 6 <>
+(<>) :: Monoid m => m -> m -> m
+(<>) = mappend
 
 -- 4 seasons(terms) of semester
 -- TODO what about 3 terms?
@@ -101,10 +112,29 @@ instance FromJSON School where
 
 
 -- course id (e.g. GS1101)
--- TODO what if Int < 1000 ?
---  GS011 -> GS0011 ?
 newtype Crsid = Crsid (School,Int)
   deriving (Eq, Show, Read, Ord)
+
+-- convert the crsid to string as saved in db
+-- e.g. (GS,1101) -> "GS1101"
+-- crsid assumed to have valid values
+crsidTstring :: IString s => Crsid -> s
+crsidTstring (Crsid (sc,n)) =
+  schoolTstring sc <> fromString (swrap n)
+  -- TODO it might not be length 4 in other systems
+  where swrap = reverse . take 4 . reverse . (zeros ++) . show
+        zeros = replicate 4 '0'
+
+-- convert read crsid from string as saved in db
+-- e.g. (GS,1101) -> "GS1101"
+stringTcrsid :: String -> Maybe Crsid
+stringTcrsid s =
+  let (sc,n) = splitAt 2 s
+  in Crsid `wrap` (,) <$> stringTschool sc
+                      <*> f n
+        -- efficiently (lazily?) check if length is 4
+  where f s@([_,_,_,_]) | all isNumber s = Just (read s)
+        f s = Nothing
 
 -- required by tojson instance of refcrs
 instance ToJSON Crsid where

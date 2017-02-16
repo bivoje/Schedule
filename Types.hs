@@ -14,6 +14,8 @@ module Types
   , RefSect(..)
   , schoolTstring
   , stringTschool
+  , crsidTstring
+  , stringTcrsid
   ) where
 
 import Types.Internal
