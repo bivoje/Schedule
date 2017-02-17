@@ -20,16 +20,18 @@ import Data.String
 
 {-
  - WARNING!!
- - most of the types in this module derives Show/Read instance.
+ - most of the types in this module derive Show/Read instance.
  - But it's only for debugging purpose and should not
- - be utilized in actual code
+ - be utilized in the actual code
 -}
 
 
--- represents most of strings (String, Text, ByteString, etc)
+-- represents most of the string types (String, Text, ByteString, etc)
 -- IsString for string literal
 -- Eq for pattern matching
 -- Monoid for appending
+-- probably Text will be used for the most of the time than other
+-- to be efficient (string) and encoding-safe (bytestring)
 class (IsString s, Eq s, Monoid s) => IString s
 
 instance IString String where
@@ -39,14 +41,16 @@ instance IString Text where
 instance IString ByteString where
 
 
+-- (.) for binary function
 wrap :: (c -> d) -> (a -> b -> c) -> a -> b -> d
 wrap f g = (\a b -> f (g a b))
 
 -- it should have imported with Data.Monoid
--- but somehow it didin't
+-- but somehow it haven't
 infixr 6 <>
 (<>) :: Monoid m => m -> m -> m
 (<>) = mappend
+
 
 -- 4 seasons(terms) of semester
 -- TODO what about 3 terms?
@@ -120,13 +124,14 @@ intTsemester i
 data School = GS | PS | CH | BS | EC | MC | MA | EV
   deriving (Eq, Show, Read, Ord, Enum, Bounded)
 
--- use this instead of show function
+-- convert to string as saved in db
 schoolTstring :: IString s => School -> s
 schoolTstring s = case s of {
    GS -> "GS"; PS -> "PS"; CH -> "CH"; BS -> "BS";
    EC -> "EC"; MC -> "MC"; MA -> "MA"; EV -> "EV";
 }
 
+-- parses the school data from db
 stringTschool :: IString s => s -> Maybe School
 stringTschool s = case s of {
   "GS" -> Just GS; "PS" -> Just PS; "CH" -> Just CH; "BS" -> Just BS;
@@ -144,29 +149,29 @@ instance FromJSON School where
 
 
 -- course id (e.g. GS1101)
+-- constructor is hidden to outside
 newtype Crsid = Crsid (School,Int)
   deriving (Eq, Show, Read, Ord)
 
--- convert the crsid to string as saved in db
--- e.g. (GS,1101) -> "GS1101"
+-- convert to string as saved in db
+-- e.g. (GS,101) -> "GS0101"
 -- crsid assumed to have valid values
 crsidTstring :: IString s => Crsid -> s
 crsidTstring (Crsid (sc,n)) = assert (0 <= n && n < 10000) $
   schoolTstring sc <> fromString (swrap n)
-  -- TODO it might not be length 4 in other systems
   where swrap = reverse . take 4 . reverse . (zeros ++) . show
         zeros = replicate 4 '0'
 
--- convert read crsid from string as saved in db
+-- parses the school data from db
 -- e.g. (GS,1101) -> "GS1101"
 stringTcrsid :: String -> Maybe Crsid
 stringTcrsid s =
   let (sc,n) = splitAt 2 s
   in Crsid `wrap` (,) <$> stringTschool sc
                       <*> f n
-        -- efficiently (lazily?) check if length is 4
-  where f s@([_,_,_,_]) | all isNumber s = Just (read s)
-        f s = Nothing
+  where -- efficiently (lazily?) check if the length is 4
+    f s@([_,_,_,_]) | all isNumber s = Just (read s)
+    f s = Nothing
 
 -- required by tojson instance of refcrs
 instance ToJSON Crsid where
@@ -237,7 +242,7 @@ data Section = Section
   } deriving (Show, Read)
 
 
--- wrap Course to treate it by (only) it's primary key (crsid)
+-- wrap Course to treat it by (only) it's primary key (crsid)
 newtype RefCrs = RefCrs Course
   deriving (Show, Read)
 
@@ -253,7 +258,7 @@ instance ToJSON RefCrs where
   toJSON (RefCrs rc) = toJSON (crs_id rc)
 
 
--- wrap Section to treate it by (only) it's primary key (crsid, sectno)
+-- wrap Section to treat it by (only) it's primary key (crsid, sectno)
 newtype RefSect = RefSect Section
   deriving (Show, Read)
 
