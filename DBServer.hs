@@ -16,6 +16,23 @@ import Types.Internal
  -}
 
 
+-- gets Lectimes related with given crsid and sect# from the server
+-- returns empty set if no lectime found
+-- returns Nothing if server contains invalid value (mostly weekday)
+-- this occurs because db (mysql) does not support 'check' clause
+getLectime :: Connection -> (Crsid,Int) -> IO (Maybe LectimeSet)
+getLectime conn (c,n) =
+  query conn selq (crsidTstring c :: Text, n) >>=
+  return . fmap S.fromList . mapM f
+  where
+    f (w,p) = flip Lectime p <$> stringTweekday (w :: Text)
+    selq = "\
+      \ SELECT day, period \
+      \ FROM class \
+      \ WHERE crsid = ? AND sectno = ? \
+      \ ;"
+
+
 -- gets Course (as RefCrs) with given crsid from the server
 getRefCrs :: Connection -> Crsid -> IO (Maybe RefCrs)
 getRefCrs conn c = do
