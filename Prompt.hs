@@ -2,7 +2,7 @@
 module Prompt where
 
 --import Data.Either
-import Data.List (findIndex)
+import Data.List (elemIndex)
 import Data.Char (isNumber)
 
 -- get user input satisfies given predicate
@@ -26,7 +26,7 @@ getAnsWithin :: String -> [String] -> IO Int
 getAnsWithin cstr cand =
   putStr (cstr ++ ": ") >> getAnsWith f
   where f :: String -> Either String Int
-        f s = case findIndex (==s) cand of
+        f s = case elemIndex s cand of
                 Just i -> Right i
                 _      -> Left ("please answer within " ++ cstr ++ ": ")
 
@@ -42,8 +42,7 @@ askYesNo =
 
 -- get str for each field
 getStrFields :: [String] -> IO [Maybe String]
-getStrFields strs =
-  getFieldsWith (Right . nullize) strs
+getStrFields = getFieldsWith (Right . nullize)
   where nullize s = if null s then Nothing else Just s
 
 
@@ -70,7 +69,7 @@ promptLinesOf check = do
   str <- getLine
   proc str
   where proc str | null str  = return []
-                 | check str = fmap (str:) $ promptLinesOf check
+                 | check str = (str:) <$> promptLinesOf check
                  | otherwise = putStrLn "***Error: not aceptable"
                                 >> promptLinesOf check
 

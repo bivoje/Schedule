@@ -5,6 +5,7 @@ import System.IO.Error (isDoesNotExistError)
 
 import Control.Exception
 import Control.Monad.Trans.Maybe
+import Control.Monad (void)
 import Database.MySQL.Simple
 import Database.MySQL.Base (MySQLError)
 import Data.List
@@ -82,7 +83,7 @@ retask_ tstr action = do
          "Yes","No","Skip",
          "YES","NO","SKIP"]
   case mod i 3 of
-    0 -> taskHandle' retask_ tstr (action >> return ())
+    0 -> taskHandle' retask_ tstr $ void action
     1 -> return Nothing
     2 -> return (Just ())
 
@@ -129,13 +130,13 @@ runTask conn = runMaybeT $ do
 
 -- ask user for information then connect to db server
 connectPrompt :: IO Connection
-connectPrompt = withBuff stdin LineBuffering $ do
+connectPrompt = withBuff LineBuffering $ do
   putStrLn "enter connection information"
   u <- putStr "user: " >> getLine
   h <- putStr "host: " >> getLine
   p <- getNumber "port: "
   d <- putStr "dtbs: " >> getLine
-  pws <- putStr "passwd: " >> withEcho stdin False getLine
+  pws <- putStr "passwd: " >> withEcho False getLine
   putStrLn "" -- stdin's newline (enter) not echoed
   putStrLn "connecting to db.."
   connect defaultConnectInfo
@@ -146,12 +147,12 @@ connectPrompt = withBuff stdin LineBuffering $ do
     , connectPassword = pws
     }
   where
-    withEcho s echo act = do
-      old <- hGetEcho s
-      bracket_ (hSetEcho s echo) (hSetEcho s old) act
-    withBuff s b a = do
-      o <- hGetBuffering s
-      bracket (hSetBuffering s b) (const $ hSetBuffering s o) (const a)
+    withEcho echo act = do
+      old <- hGetEcho stdin
+      bracket_ (hSetEcho stdin echo) (hSetEcho stdin old) act
+    withBuff buff act = do
+      old <- hGetBuffering stdin
+      bracket_ (hSetBuffering stdin buff) (hSetBuffering stdin old) act
 
 
 -- main functions
@@ -160,7 +161,7 @@ connectPrompt = withBuff stdin LineBuffering $ do
 main :: IO ()
 main = do
   hSetBuffering stdin LineBuffering
-  bracket (connectPrompt) close runTask
+  bracket connectPrompt close runTask
     `catch` (\(e::MySQLError) -> do
        putStrLn "check your connection to db"
        putStr $ indentError "  " e

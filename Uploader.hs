@@ -14,7 +14,7 @@ import Data.List (transpose, groupBy)
 import Data.Char
 import Data.Function (on)
 import Data.Maybe
-import Control.Monad (when,guard)
+import Control.Monad
 import Control.Exception
 import System.IO.Error
 import Database.MySQL.Simple
@@ -119,7 +119,7 @@ isFieldCompatible'     str  = isFieldCompatible str
 getManualTeaches :: IO [Teach]
 getManualTeaches = do
     names <- promptLinesOf isFieldCompatible'
-    return . catMaybes . map (fmap conv . nullize) $ names
+    return . mapMaybe (fmap conv . nullize) $ names
   where conv (' ':s) = TA s
         conv      s  = PR s
 
@@ -136,7 +136,7 @@ getManualTeachPair = do
 -- concats names with leading '|' (professor) or '!' (TA)
 refineTmpProf :: String -> IO String
 refineTmpProf str =
-  if (isFieldCompatible str) then return $ show [PR str]
+  if isFieldCompatible str then return $ show [PR str]
   else do
     putStrLn ("manual insert required with \"" ++ str ++ "\"")
     fmap show getManualTeaches
@@ -154,7 +154,7 @@ exInsertTmpProf conn q =
 -- returns the number of inserted rows (of db)
 insertTmpProf :: Connection -> String -> IO Bool
 insertTmpProf conn name = do
-  dbknows <- (checkKeyInDB conn "che_professor" "name" (Only name))
+  dbknows <- checkKeyInDB conn "che_professor" "name" (Only name)
   if dbknows then return False else do
     rfname <- refineTmpProf name
     exInsertTmpProf conn (name,rfname)
@@ -168,7 +168,7 @@ exInsertTeach conn teach = case teach of
   where
     insertNameIfNone tbl str =
       let insq = mconcat ["INSERT INTO ", tbl, "(name) VALUES (?)"]
-          p = (Only str)
+          p = Only str
        in exInsertHandler (\q -> execute conn insq q >> return True) p
 
 
@@ -249,7 +249,7 @@ insertCourse conn (crs,_,tlt',cre') =
   let (tlt,tkr) = refineTlts tlt'
   in do
     cre <- getCredit cre'
-    args <- return (crs,tlt,tkr,cre)
+    let args = (crs,tlt,tkr,cre)
     exInsertHandler (\q -> execute conn insq q >> return True) args
   where
     insq = "\
@@ -262,7 +262,7 @@ insertCourse conn (crs,_,tlt',cre') =
 updateCourse :: Connection -> (String,String)-> IO Bool
 updateCourse conn (crsid,req')= do
   (rq1,rq2,rq3) <- getRequir req'
-  args <- return (rq1,rq2,rq3,crsid)
+  let args = (rq1,rq2,rq3,crsid)
   --FIXME is it okay to use insert handler?
   exInsertHandler (\q -> execute conn updq q >> return True) args
   where
@@ -287,7 +287,7 @@ insertCourses conn tbl =
   in do
     bs <- mapM (insertCourse conn) tups
     putStrLn "now updating prerequisite field"
-    mapM (updateCourse conn) reqs
+    mapM_ (updateCourse conn) reqs
     return . length $ filter id bs
 
 
@@ -325,7 +325,7 @@ getCacheProf :: Connection -> String -> IO [Teach]
 getCacheProf conn str = do
   sel <- query conn selq (Only str)
   case sel of
-    (Only x):_ -> return.read $ x
+    Only x : _ -> return.read $ x
     [] -> do
       putStrLn $ "can't find cache for \"" ++ str ++ "\""
       putStrLn "please insert the cache data manually"
@@ -363,7 +363,7 @@ insertSect :: Connection -> Int -> (String,String,String,String,Int)
 insertSect conn secn (_,crsid,prof',enrol',sme) = do
   enrol <- getEnrol enrol'
   (prof,ta) <- getProfFromTmp conn prof'
-  args <- return (secn,crsid,prof,ta,enrol,sme)
+  let args = (secn,crsid,prof,ta,enrol,sme)
   exInsertHandler (\q -> execute conn insq q >> return True) args
   where insq = "\
     \ INSERT INTO \
@@ -374,7 +374,7 @@ insertSect conn secn (_,crsid,prof',enrol',sme) = do
 
 insertSectGrp :: Connection -> [(String,String,String,String,Int)] -> IO Int
 insertSectGrp conn grps =
-  let ex = mapM (uncurry $ insertSect conn) $ zip [1..] grps
+  let ex = zipWithM (insertSect conn) [1..] grps
    in fmap (length . filter id) ex
 
 
@@ -386,7 +386,7 @@ insertSects conn tbl =
       gtups = groupBy ((==) `on` snd4) tups
   in do
     sme <- getNumber "semester code: "
-    fmap sum $ mapM (insertSectGrp conn . map (apn4 sme)) gtups
+    sum <$> mapM (insertSectGrp conn . map (apn4 sme)) gtups
   where snd4 (_,b,_,_) = b
         apn4 e (a,b,c,d) = (a,b,c,d,e)
 
@@ -454,8 +454,7 @@ exInsertRoom conn arg =
 insertRooms :: Connection -> Pcells -> IO Int
 insertRooms conn pcells =
   let vcells = filterNoRoom . concat . concat $ pcells
-   in mapM (\c -> g c >>= exInsertRoom conn) vcells
-      >>= return . length . filter id
+   in length . filter id <$> mapM (g >=> exInsertRoom conn) vcells
   where filterNoRoom = filter f
         f (_,_,_,d) = not $ null d
         g (a,b,c,d) = do
@@ -485,7 +484,7 @@ insertVcells conn np nd vcells =
       d = days !! (nd-1)
       p = np
   in do
-    bs <- mapM (\c -> insvc p d c >>= exInsertTmt conn) vcells
+    bs <- mapM (insvc p d >=> exInsertTmt conn) vcells
     return . length $ filter id bs
   where insvc p d (a,_,c,_) = do
           sectno <- getSectno c
@@ -494,7 +493,6 @@ insertVcells conn np nd vcells =
 
 insertTmts :: Connection -> Pcells -> IO Int
 insertTmts conn pcells = do
-  ns <- mapM (uncurry insp) $ zip [1..] (filterEmpty pcells)
+  ns <- zipWithM insp [1..] $ filterEmpty pcells
   return . sum . concat $ ns
-  where insp p pcell =
-          mapM (uncurry $ insertVcells conn p) $ zip [1..] pcell
+  where insp p = zipWithM (insertVcells conn p) [1..]

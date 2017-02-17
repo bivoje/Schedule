@@ -46,7 +46,7 @@ opl_header = count 2 line >> return []
 opl_title = cells
 
 -- read content of a table, ignore worthless footer
-opl_content num = fmap concat $ many1 (school num)
+opl_content num = concat <$> many1 (school num)
 
 -- read a category of school like (기초교육학부)
 school num = do
@@ -74,8 +74,7 @@ parse_timetable file = readFile file >>= return . parse tmt_table file
 -- read whole table, returns its content
 tmt_table = do
   tl <- tmt_title
-  ct <- tmt_content (tail $ map snd tl)
-  return ct
+  tmt_content (tail $ map snd tl)
 
 -- read title of each column,
 -- used to calculate how many cell are in each day
@@ -121,7 +120,7 @@ tmt_row = do
 -- Primitives
 
 -- parse credit
-parse_credit s =
+parse_credit =
   parse (do
     gang <- natural
     char ':'
@@ -129,13 +128,13 @@ parse_credit s =
     char ':'
     hak <- natural
     return (gang,sil,hak)
-  ) "" s
+  ) ""
   where natural = do
           n <- many1 (satisfy isNumber)
           return (read n :: Int)
 
 -- parse the 'requir' field
-parse_requir s = parse p "" s
+parse_requir = parse p ""
   where p = word `sepBy` (string "또는" <|> string "or")
 
 
