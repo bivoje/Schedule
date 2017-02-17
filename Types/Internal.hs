@@ -76,6 +76,22 @@ data WeekDay
   | Sunday
   deriving (Eq, Show, Read, Ord, Enum, Bounded)
 
+-- convert to string as saved in db
+weekdayTstring :: IString s => WeekDay -> s
+weekdayTstring s = case s of {
+  Monday    -> "MON"; Tuesday   -> "TUE"; Wednesday -> "WED";
+  Thursday  -> "THU"; Friday    -> "FRI"; Saturday  -> "SAT";
+  Sunday    -> "SUN";
+}
+
+-- parses the weekday data from db
+stringTweekday :: IString s => s -> Maybe WeekDay
+stringTweekday s = case s of {
+  "MON" -> Just Monday   ; "TUE" -> Just Tuesday  ; "WED" -> Just Wednesday;
+  "THU" -> Just Thursday ; "FRI" -> Just Friday   ; "SAT" -> Just Saturday ;
+  "SUN" -> Just Sunday   ; _ -> Nothing
+}
+
 
 -- Semester {year, seaon}
 data Semester = Semester Int Season
