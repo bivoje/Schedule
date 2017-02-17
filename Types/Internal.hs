@@ -97,6 +97,21 @@ stringTweekday s = case s of {
 data Semester = Semester Int Season
   deriving (Eq, Show, Read, Ord)
 
+-- convert to string as saved in db
+-- e.g. Semester 17 Winter -> 417
+-- semester assumed to have valid values
+semesterTint :: Semester -> Int
+semesterTint (Semester n s) =
+  ((fromEnum s + 1) * 100) + n
+
+-- parses the semester data from db
+-- e.g. 417 -> Semester 17 Winter
+intTsemester :: Int -> Maybe Semester
+intTsemester i
+  | i < 100 = Nothing
+  | i `div` 100 > (fromEnum (maxBound :: Season) +2) = Nothing
+  | otherwise = Just . Semester (mod i 100) . toEnum $ div i 100 - 1
+
 
 -- School department
 -- TODO this can vary on schools
