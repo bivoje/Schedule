@@ -54,17 +54,18 @@ getProf conn name = do
 
 
 -- gets Course (as RefCrs) with given crsid from the server
+-- returns Nothing in either case of not existing and not complete
 getRefCrs :: Connection -> Crsid -> IO (Maybe RefCrs)
 getRefCrs conn c = do
   -- there will be one or zero result since crsid is primary
   x <- query conn selq $ Only (crsidTstring c :: Text)
-  case x of
-    [] -> return Nothing
-    [(tlt,tlk,cre,rq1,rq2,rq3)] -> return . Just . RefCrs $ Course {
+  return $ case x of
+    [] -> Nothing
+    -- all fields except requirs are not null, we don't check nullity
+    [(tlt,tlk,cre,rq1,rq2,rq3)] -> Just . RefCrs $ Course {
       crs_id = c, title = tlt, title_kr = tlk, credit = cre,
       requir = S.fromList . mapMaybe (>>=stringTcrsid) $ [rq1,rq2,rq3]
     }
-  -- we have crsid already, so don't query it again
   where
     selq = "\
       \ SELECT title, title_kr, credit, requir1, requir2, requir3 \
