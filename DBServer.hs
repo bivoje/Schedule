@@ -23,15 +23,13 @@ import Types.Internal
 -- this occurs because db (mysql) does not support 'check' clause
 getLectime :: Connection -> (Crsid,Int) -> IO (Maybe LectimeSet)
 getLectime conn (c,n) =
-  query conn selq (crsidTstring c :: Text, n) >>=
-  return . fmap S.fromList . mapM f
-  where
-    f (w,p) = flip Lectime p <$> stringTweekday (w :: Text)
-    selq = "\
-      \ SELECT day, period \
-      \ FROM class \
-      \ WHERE crsid = ? AND sectno = ? \
-      \ ;"
+  fmap S.fromList . mapM (\(w,p) -> flip Lectime p <$> stringTweekday w)
+  <$> (query conn selq (crsidTstring c :: Text, n) :: IO [(Text,Int)])
+  where selq = "\
+    \ SELECT day, period \
+    \ FROM class \
+    \ WHERE crsid = ? AND sectno = ? \
+    \ ;"
 
 
 -- gets Prof information for given name from the server

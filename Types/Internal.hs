@@ -43,7 +43,7 @@ instance IString ByteString where
 
 -- (.) for binary function
 wrap :: (c -> d) -> (a -> b -> c) -> a -> b -> d
-wrap f g = (\a b -> f (g a b))
+wrap f g a b= f (g a b)
 
 -- it should have imported with Data.Monoid
 -- but somehow it haven't
@@ -170,7 +170,7 @@ stringTcrsid s =
   in Crsid `wrap` (,) <$> stringTschool sc
                       <*> f n
   where -- efficiently (lazily?) check if the length is 4
-    f s@([_,_,_,_]) | all isNumber s = Just (read s)
+    f s@[_,_,_,_] | all isNumber s = Just (read s)
     f s = Nothing
 
 -- required by tojson instance of refcrs
@@ -196,7 +196,7 @@ newtype LecTime = LecTime Lectime
 
 instance Ord LecTime where
   (LecTime (Lectime w1 n1)) <= (LecTime (Lectime w2 n2)) =
-    if n1 == n2 then w1 <= w2 else if n1 < n2 then True else False
+    if n1 == n2 then w1 <= w2 else n1 < n2
 
 type LectimeSet = Set Lectime
 type LecTimeSet = Set LecTime
