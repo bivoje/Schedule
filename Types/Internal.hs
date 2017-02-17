@@ -14,6 +14,7 @@ import Data.Function
 import Data.List (splitAt)
 import Data.Char (isNumber)
 import Control.Monad
+import Control.Exception (assert)
 
 import Data.String
 
@@ -101,7 +102,7 @@ data Semester = Semester Int Season
 -- e.g. Semester 17 Winter -> 417
 -- semester assumed to have valid values
 semesterTint :: Semester -> Int
-semesterTint (Semester n s) =
+semesterTint (Semester n s) = assert (0 <= n && n < 100) $
   ((fromEnum s + 1) * 100) + n
 
 -- parses the semester data from db
@@ -150,7 +151,7 @@ newtype Crsid = Crsid (School,Int)
 -- e.g. (GS,1101) -> "GS1101"
 -- crsid assumed to have valid values
 crsidTstring :: IString s => Crsid -> s
-crsidTstring (Crsid (sc,n)) =
+crsidTstring (Crsid (sc,n)) = assert (0 <= n && n < 10000) $
   schoolTstring sc <> fromString (swrap n)
   -- TODO it might not be length 4 in other systems
   where swrap = reverse . take 4 . reverse . (zeros ++) . show
