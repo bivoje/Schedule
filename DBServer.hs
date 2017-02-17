@@ -8,6 +8,7 @@ import qualified Data.Set as S (fromList)
 import Database.MySQL.Simple
 import System.IO
 import Control.Exception (bracket_)
+import Control.Monad.Trans.Maybe
 
 import Types.Internal
 {- DBServer module imports Types.Internal directly
@@ -71,4 +72,32 @@ getRefCrs conn c = do
       \ SELECT title, title_kr, credit, requir1, requir2, requir3 \
       \ FROM course \
       \ WHERE crs_id = ? \
+      \ ;"
+
+
+-- gets Section (as RefSect) with given crsid and sect# from the server
+-- returns Nothing in either case of not existing and not complete
+getRefSect :: Connection -> (Crsid,Int) -> IO (Maybe RefSect)
+getRefSect conn (c,n) = do
+  x <- query conn selq (crsidTstring c :: Text, n)
+  -- there will be one or zero result since crsid is primary
+  case fmap nullize5 x of
+    [] -> return Nothing          -- nothing on database
+    [Nothing] -> return Nothing   -- database is not coplete
+    [Just (prf',t,rom,sz,sme')] -> runMaybeT $ do
+      -- FIXME we can do join instead ??
+      prf <- MaybeT $ getProf conn prf'
+      ltm <- MaybeT $ getLectime conn (c,n)
+      sme <- MaybeT . return $ intTsemester sme'
+      return . RefSect $ Section {
+        crsid = c, sectno = n, prof = prf, ta = TeachAssi t,
+        lectime = ltm, roomid = rom, enroll_size = sz, semester = sme
+      }
+  where
+    nullize5 (Just a, Just b, Just c, Just d, Just e) = Just (a,b,c,d,e)
+    nullize5 _ = Nothing
+    selq = "\
+      \ SELECT prof, ta, room, enroll_size, semester \
+      \ FROM section \
+      \ WHERE crsid = ? AND sect_no = ? \
       \ ;"
