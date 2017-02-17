@@ -184,6 +184,17 @@ instance FromJSON Crsid where
 data Lectime = Lectime WeekDay Int
   deriving (Eq, Show, Read, Ord)
 
+-- Lectime wraper that ordered by time period first
+-- Lectime Trans :> LectimeT :> LecTime
+newtype LecTime = LecTime Lectime
+  deriving (Eq, Show, Read)
+
+instance Ord LecTime where
+  (LecTime (Lectime w1 n1)) <= (LecTime (Lectime w2 n2)) =
+    if n1 == n2 then w1 <= w2 else if n1 < n2 then True else False
+
+type LectimeSet = Set Lectime
+type LecTimeSet = Set LecTime
 
 -- room name (e.g. "대학A 105")
 type RoomId = Text
@@ -219,7 +230,7 @@ data Section = Section
   , sectno  :: Int
   , prof    :: Prof
   , ta      :: TeachAssi
-  , lectime :: [Lectime]
+  , lectime :: LectimeSet
   , roomid  :: RoomId
   , enroll_size :: Int
   , semester :: Semester
