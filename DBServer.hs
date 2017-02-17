@@ -33,6 +33,26 @@ getLectime conn (c,n) =
       \ ;"
 
 
+-- gets Prof information for given name from the server
+-- returns Nothing in either case of not existing and not complete
+getProf :: Connection -> Text -> IO (Maybe Prof)
+getProf conn name = do
+  x <- query conn selq (Only name)
+  -- there will be one or zero result since crsid is primary
+  return $ case fmap nullize3 x of
+    [] -> Nothing          -- nothing on database
+    [Nothing] -> Nothing   -- database is not coplete
+    [Just (off,ful,eml)] -> Just $ Prof name off ful eml
+  where
+    nullize3 (Just a, Just b, Just c) = Just (a,b,c)
+    nullize3 _ = Nothing
+    selq = "\
+      \ SELECT office, full, email \
+      \ FROM professor \
+      \ WHERE name = ? \
+      \ ;"
+
+
 -- gets Course (as RefCrs) with given crsid from the server
 getRefCrs :: Connection -> Crsid -> IO (Maybe RefCrs)
 getRefCrs conn c = do
