@@ -5,8 +5,11 @@ module DBServer where
 import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import qualified Data.Set as S (fromList)
+import qualified Data.ByteString as B
+import Data.Aeson
 import Database.MySQL.Simple
 import System.IO
+import Control.Applicative ((<|>))
 import Control.Exception (bracket_)
 import Control.Monad.Trans.Maybe
 
@@ -15,6 +18,21 @@ import Types.Internal
  - and provides getter-functions of some composite types.
  - Using those functions would guarantee the validity of the data.
  -}
+
+
+instance FromJSON ConnectInfo where
+  parseJSON (Object v) =
+    let seq = [ rec1, rec2, rec3, rec4, rec5, rec6 ]
+     in foldl (>>=) (return defaultConnectInfo) seq
+    where
+      rec1 c = (\x -> c { connectHost     = x }) <$> v .: "host"
+      rec2 c = (\x -> c { connectPort     = x }) <$> v .: "port"
+      rec3 c = (\x -> c { connectUser     = x }) <$> v .: "user"
+      rec4 c = (\x -> c { connectPassword = x }) <$> v .: "pswd"
+      rec5 c = (\x -> c { connectDatabase = x }) <$> v .: "dtbs"
+      rec6 c = (\x -> c { connectPath     = x }) <$> v .: "path"
+
+  parseJSON _ = fail "expected "
 
 
 -- gets Lectimes related with given crsid and sect# from the server
