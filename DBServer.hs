@@ -6,6 +6,7 @@ import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import qualified Data.Set as S (fromList)
 import qualified Data.ByteString as B
+import qualified Data.HashMap.Lazy as H
 import Data.Aeson
 import Database.MySQL.Simple
 import System.IO
@@ -22,8 +23,12 @@ import Types.Internal
 
 instance FromJSON ConnectInfo where
   parseJSON (Object v) =
-    let seq = [ rec1, rec2, rec3, rec4, rec5, rec6 ]
-     in foldl (\c r -> (c >>= r) <|> c) (return defaultConnectInfo) seq
+    let fields = ["host", "port", "user", "pswd", "dtbs", "path"]
+        seq = [ rec1, rec2, rec3, rec4, rec5, rec6 ]
+        f = not . flip elem fields
+        valid = H.null $ H.filterWithKey (f `wrap` const) v
+    in if not valid then fail "invaild field for connectInfor"
+       else foldl (\c r -> (c >>= r) <|> c) (return defaultConnectInfo) seq
     where
       rec1 c = (\x -> c { connectHost     = x }) <$> v .: "host"
       rec2 c = (\x -> c { connectPort     = x }) <$> v .: "port"
