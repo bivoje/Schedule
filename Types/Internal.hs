@@ -146,6 +146,7 @@ instance ToJSON School where
 -- required by tojson instance of crsid
 instance FromJSON School where
   parseJSON (String s) = maybe mzero return . stringTschool $ s
+  parseJSON _ = fail "expected School code"
 
 
 -- course id (e.g. GS1101)
