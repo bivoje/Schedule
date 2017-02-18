@@ -23,7 +23,7 @@ import Types.Internal
 instance FromJSON ConnectInfo where
   parseJSON (Object v) =
     let seq = [ rec1, rec2, rec3, rec4, rec5, rec6 ]
-     in foldl (>>=) (return defaultConnectInfo) seq
+     in foldl (\c r -> (c >>= r) <|> c) (return defaultConnectInfo) seq
     where
       rec1 c = (\x -> c { connectHost     = x }) <$> v .: "host"
       rec2 c = (\x -> c { connectPort     = x }) <$> v .: "port"
