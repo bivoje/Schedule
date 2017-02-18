@@ -5,7 +5,7 @@ module DBServer where
 import Data.Maybe (mapMaybe)
 import Data.Text (Text)
 import qualified Data.Set as S (fromList)
-import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as B
 import qualified Data.HashMap.Lazy as H
 import Data.Aeson
 import Database.MySQL.Simple
@@ -38,6 +38,14 @@ instance FromJSON ConnectInfo where
       rec6 c = (\x -> c { connectPath     = x }) <$> v .: "path"
 
   parseJSON _ = fail "expected "
+
+
+getConnection :: IO Connection
+getConnection = do
+  json <- B.readFile "config.json"
+  case eitherDecode json of
+    Left str -> error str
+    Right c -> connect c
 
 
 -- gets Lectimes related with given crsid and sect# from the server
