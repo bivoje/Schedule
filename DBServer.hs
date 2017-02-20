@@ -1,6 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module DBServer where
+module DBServer (
+    getConnection
+  , getLectime
+  , getRequir
+  , getProf
+  , getRefCrs
+  , getRefSect
+  ) where
 
 import Data.Maybe (mapMaybe)
 import Data.Text (Text)
