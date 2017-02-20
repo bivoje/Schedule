@@ -1,5 +1,5 @@
 
-module Types (
+module Schedule.Types (
 
   {- NOTION of constructor hiding
    - there are some exporting their constructors
@@ -44,4 +44,4 @@ module Types (
 
   ) where
 
-import Types.Internal
+import Schedule.Types.Internal

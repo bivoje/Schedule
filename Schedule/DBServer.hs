@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module DBServer (
+module Schedule.DBServer (
     getConnection
   , getLectime
   , getRequir
@@ -21,7 +21,7 @@ import Control.Applicative ((<|>))
 import Control.Exception (bracket_)
 import Control.Monad.Trans.Maybe
 
-import Types.Internal
+import Schedule.Types.Internal
 {- DBServer module imports Types.Internal directly
  - and provides getter-functions of some composite types.
  - Using those functions would guarantee the validity of the data.

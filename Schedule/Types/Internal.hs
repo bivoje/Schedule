@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module Types.Internal where
+module Schedule.Types.Internal where
 
 import Data.Aeson
 import Data.Set (Set)
