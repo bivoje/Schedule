@@ -154,6 +154,8 @@ instance FromJSON School where
 newtype Crsid = Crsid (School,Int)
   deriving (Eq, Show, Read, Ord)
 
+type CrsidSet = Set Crsid
+
 -- convert to string as saved in db
 -- e.g. (GS,101) -> "GS0101"
 -- crsid assumed to have valid values
@@ -226,7 +228,7 @@ data Course = Course
   , title    :: Text
   , title_kr :: Text
   , credit   :: Int
-  , requir   :: Set Crsid
+  , requir   :: CrsidSet
   } deriving (Show, Read)
 
 
