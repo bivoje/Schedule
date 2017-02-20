@@ -63,6 +63,21 @@ getLectime conn (c,n) =
     \ ;"
 
 
+readRequir :: [Maybe String] -> CrsidSet
+readRequir = S.fromList . mapMaybe (>>= stringTcrsid)
+
+getRequir :: Connection -> Crsid -> IO (Maybe CrsidSet)
+getRequir conn c = do
+  x <- query conn selq $ Only (crsidTstring c :: Text)
+  return $ case x of
+    [] -> Nothing
+    [(r1,r2,r3)] -> Just $ readRequir [r1,r2,r3]
+  where selq = "\
+  \ SELECT requir1, requir2, requir3 \
+  \ FROM course \
+  \ WHERE crs_id = ? \
+  \ ;"
+
 -- gets Prof information for given name from the server
 -- returns Nothing in either case of not existing and not complete
 getProf :: Connection -> Text -> IO (Maybe Prof)
@@ -94,7 +109,7 @@ getRefCrs conn c = do
     -- all fields except requirs are not null, we don't check nullity
     [(tlt,tlk,cre,rq1,rq2,rq3)] -> Just . RefCrs $ Course {
       crs_id = c, title = tlt, title_kr = tlk, credit = cre,
-      requir = S.fromList . mapMaybe (>>=stringTcrsid) $ [rq1,rq2,rq3]
+      requir = readRequir [rq1,rq2,rq3]
     }
   where
     selq = "\
