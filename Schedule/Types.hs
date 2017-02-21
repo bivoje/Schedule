@@ -13,20 +13,20 @@ module Schedule.Types (
     Season(..)
 
   , WeekDay(..)
-  ,   weekdayTstring
-  ,   stringTweekday
+  ,   weekdayTstr
+  ,   strTweekday
 
   , Semester()
   ,   semesterTint
   ,   intTsemester
 
   , School(..)
-  ,   schoolTstring
-  ,   stringTschool
+  ,   schoolTstr
+  ,   strTschool
 
   , Crsid()
-  ,   crsidTstring
-  ,   stringTcrsid
+  ,   crsidTstr
+  ,   strTcrsid
 
   , Lectime()
   , LecTime()

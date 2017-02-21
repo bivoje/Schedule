@@ -82,16 +82,16 @@ data WeekDay
   deriving (Eq, Show, Read, Ord, Enum, Bounded)
 
 -- convert to string as saved in db
-weekdayTstring :: IString s => WeekDay -> s
-weekdayTstring s = case s of {
+weekdayTstr :: IString s => WeekDay -> s
+weekdayTstr s = case s of {
   Monday    -> "MON"; Tuesday   -> "TUE"; Wednesday -> "WED";
   Thursday  -> "THU"; Friday    -> "FRI"; Saturday  -> "SAT";
   Sunday    -> "SUN";
 }
 
 -- parses the weekday data from db
-stringTweekday :: IString s => s -> Maybe WeekDay
-stringTweekday s = case s of {
+strTweekday :: IString s => s -> Maybe WeekDay
+strTweekday s = case s of {
   "MON" -> Just Monday   ; "TUE" -> Just Tuesday  ; "WED" -> Just Wednesday;
   "THU" -> Just Thursday ; "FRI" -> Just Friday   ; "SAT" -> Just Saturday ;
   "SUN" -> Just Sunday   ; _ -> Nothing
@@ -125,15 +125,15 @@ data School = GS | PS | CH | BS | EC | MC | MA | EV
   deriving (Eq, Show, Read, Ord, Enum, Bounded)
 
 -- convert to string as saved in db
-schoolTstring :: IString s => School -> s
-schoolTstring s = case s of {
+schoolTstr :: IString s => School -> s
+schoolTstr s = case s of {
    GS -> "GS"; PS -> "PS"; CH -> "CH"; BS -> "BS";
    EC -> "EC"; MC -> "MC"; MA -> "MA"; EV -> "EV";
 }
 
 -- parses the school data from db
-stringTschool :: IString s => s -> Maybe School
-stringTschool s = case s of {
+strTschool :: IString s => s -> Maybe School
+strTschool s = case s of {
   "GS" -> Just GS; "PS" -> Just PS; "CH" -> Just CH; "BS" -> Just BS;
   "EC" -> Just EC; "MC" -> Just MC; "MA" -> Just MA; "EV" -> Just EV;
   _    -> Nothing;
@@ -141,11 +141,11 @@ stringTschool s = case s of {
 
 -- required by tojson instance of crsid
 instance ToJSON School where
-  toJSON = toJSON . (schoolTstring :: School -> Text)
+  toJSON = toJSON . (schoolTstr :: School -> Text)
 
 -- required by tojson instance of crsid
 instance FromJSON School where
-  parseJSON (String s) = maybe mzero return . stringTschool $ s
+  parseJSON (String s) = maybe mzero return . strTschool $ s
   parseJSON _ = fail "expected School code"
 
 
@@ -159,18 +159,18 @@ type CrsidSet = Set Crsid
 -- convert to string as saved in db
 -- e.g. (GS,101) -> "GS0101"
 -- crsid assumed to have valid values
-crsidTstring :: IString s => Crsid -> s
-crsidTstring (Crsid (sc,n)) = assert (0 <= n && n < 10000) $
-  schoolTstring sc <> fromString (swrap n)
+crsidTstr :: IString s => Crsid -> s
+crsidTstr (Crsid (sc,n)) = assert (0 <= n && n < 10000) $
+  schoolTstr sc <> fromString (swrap n)
   where swrap = reverse . take 4 . reverse . (zeros ++) . show
         zeros = replicate 4 '0'
 
 -- parses the school data from db
 -- e.g. (GS,1101) -> "GS1101"
-stringTcrsid :: String -> Maybe Crsid
-stringTcrsid s =
+strTcrsid :: String -> Maybe Crsid
+strTcrsid s =
   let (sc,n) = splitAt 2 s
-  in Crsid `wrap` (,) <$> stringTschool sc
+  in Crsid `wrap` (,) <$> strTschool sc
                       <*> f n
   where -- efficiently (lazily?) check if the length is 4
     f s@[_,_,_,_] | all isNumber s = Just (read s)

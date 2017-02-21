@@ -61,8 +61,8 @@ getConnection = do
 -- this occurs because db (mysql) does not support 'check' clause
 getLectime :: Connection -> (Crsid,Int) -> IO (Maybe LectimeSet)
 getLectime conn (c,n) =
-  fmap S.fromList . mapM (\(w,p) -> flip Lectime p <$> stringTweekday w)
-  <$> (query conn selq (crsidTstring c :: Text, n) :: IO [(Text,Int)])
+  fmap S.fromList . mapM (\(w,p) -> flip Lectime p <$> strTweekday w)
+  <$> (query conn selq (crsidTstr c :: Text, n) :: IO [(Text,Int)])
   where selq = "\
     \ SELECT day, period \
     \ FROM class \
@@ -71,11 +71,11 @@ getLectime conn (c,n) =
 
 
 readRequir :: [Maybe String] -> CrsidSet
-readRequir = S.fromList . mapMaybe (>>= stringTcrsid)
+readRequir = S.fromList . mapMaybe (>>= strTcrsid)
 
 getRequir :: Connection -> Crsid -> IO (Maybe CrsidSet)
 getRequir conn c = do
-  x <- query conn selq $ Only (crsidTstring c :: Text)
+  x <- query conn selq $ Only (crsidTstr c :: Text)
   return $ case x of
     [] -> Nothing
     [(r1,r2,r3)] -> Just $ readRequir [r1,r2,r3]
@@ -110,7 +110,7 @@ getProf conn name = do
 getRefCrs :: Connection -> Crsid -> IO (Maybe RefCrs)
 getRefCrs conn c = do
   -- there will be one or zero result since crsid is primary
-  x <- query conn selq $ Only (crsidTstring c :: Text)
+  x <- query conn selq $ Only (crsidTstr c :: Text)
   return $ case x of
     [] -> Nothing
     -- all fields except requirs are not null, we don't check nullity
@@ -130,7 +130,7 @@ getRefCrs conn c = do
 -- returns Nothing in either case of not existing and not complete
 getRefSect :: Connection -> (Crsid,Int) -> IO (Maybe RefSect)
 getRefSect conn (c,n) = do
-  x <- query conn selq (crsidTstring c :: Text, n)
+  x <- query conn selq (crsidTstr c :: Text, n)
   -- there will be one or zero result since crsid is primary
   case fmap nullize5 x of
     [] -> return Nothing          -- nothing on database
