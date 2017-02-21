@@ -1,9 +1,19 @@
-module Data.List.Zipper where
+module Schedule.Zipper where
 
 import Control.Monad (liftM2)
 import Test.QuickCheck (Arbitrary(..), CoArbitrary(..))
 import Data.Maybe (listToMaybe)
 
+{-
+ - custom modified version of Data.List.Zipper
+ - make the second list of Zipper (namely rs in (Zip ls rs))
+ - to have heading element which is the cursor of the zipper
+ - unless the zipper is once emptied (empty construction,
+ - deleting the last element).
+ - this module exports every functions, constructors, etc
+ - for convenience, but remember the new constraints when
+ - you unconstruct a Zipper manually
+ -}
 
 data Zipper a = Zip ![a] ![a] deriving (Eq,Show)
 
@@ -30,10 +40,15 @@ fromList as = Zip [] as
 -- | @fromListEnd xs@ returns a zipper containing the elements of xs,
 -- focused just off the right end of the list.
 fromListEnd :: [a] -> Zipper a
-fromListEnd as = Zip (reverse as) []
+fromListEnd    []  = Zip [] []
+fromListEnd (a:as) = Zip (reverse as) [a]
 
 toList :: Zipper a -> [a]
 toList (Zip ls rs) = reverse ls ++ rs
+
+isEmpty :: Zipper a -> Bool
+isEmpty (Zip [] []) = True
+isEmpty _ = False
 
 -- | @beginp z@ returns @True@ if the zipper is at the start.
 beginp :: Zipper a -> Bool
@@ -43,8 +58,9 @@ beginp _           = False
 -- | @endp z@ returns @True@ if the zipper is at the end.
 -- It is not safe to call @cursor@ on @z@ if @endp z@ returns @True@.
 endp :: Zipper a -> Bool
-endp   (Zip _  []) = True
-endp   _           = False
+endp (Zip _ [a])  = True
+endp (Zip [] [])  = True
+endp _            = False
 
 -- | @emptyp z@ returns @True@ if the zipper is completely empty.
 -- forall z. emptyp z == beginp z && endp z
@@ -54,7 +70,10 @@ emptyp _           = False
 
 start, end :: Zipper a -> Zipper a
 start (Zip ls rs) = Zip [] (reverse ls ++ rs)
-end   (Zip ls rs) = Zip (reverse rs ++ ls) []
+end z@(Zip _  []) = z
+end   (Zip ls rs) =
+  let (x:xs) = reverse rs ++ ls
+   in Zip xs [x]
 
 -- | @cursor z@ returns the targeted element in @z@.
 --
@@ -78,6 +97,7 @@ left  z               = z
 -- shifted right one element; this can move the
 -- cursor off the end.
 right :: Zipper a -> Zipper a
+right z@(Zip ls [a])  = z
 right (Zip ls (a:rs)) = Zip (a:ls) rs
 right z               = z
 
@@ -89,20 +109,9 @@ insert a (Zip ls rs) = Zip ls (a:rs)
 -- Safe to call on an empty zipper.
 -- forall x z. delete (insert x z) == z
 delete :: Zipper a -> Zipper a
+delete (Zip (x:ls) [_]) = Zip ls [x]
 delete (Zip ls (_:rs)) = Zip ls rs
 delete z               = z
-
--- | @push x z@ inserts x into the zipper, and advances
--- the cursor past it.
-push :: a -> Zipper a -> Zipper a
-push   a (Zip ls rs) = Zip (a:ls) rs
-
--- | @pop z@ removes the element before the cursor (if any).
--- Safe to call on an empty zipper.
--- forall x z. pop (push x z) == z
-pop :: Zipper a -> Zipper a
-pop    (Zip (_:ls) rs) = Zip ls rs
-pop    z               = z
 
 -- | @replace a z@ changes the current element in the zipper
 -- to the passed in value.  If there is no current element,
@@ -118,8 +127,10 @@ replace _ z               = z
 -- it's now off the right end, and if it was off the
 -- right end, it's now at the start of the reversed list.
 reversez :: Zipper a -> Zipper a
-reversez (Zip ls rs) = Zip rs ls
+reversez (Zip ls [])     = Zip [] ls
+reversez (Zip ls (a:rs)) = Zip rs (a:ls)
 
+{-
 -- | @foldrz f x zip@ calls @f@ with the zipper focused on
 -- each element in order, starting with the current.
 -- You are guaranteed that f can safely call "cursor" on
@@ -164,3 +175,14 @@ extendz :: (Zipper a -> b) -> Zipper a -> Zipper b
 extendz f z@(Zip ls rs) = Zip ls' rs' where
     rs' = foldrz (\z' xs -> f z' : xs) [] z
     ls' = foldrz (\z' xs -> f (reversez $ right z') : xs) [] $ reversez z
+-}
+
+windowz :: Int -> Zipper a -> Zipper a
+windowz n (Zip ls rs) = Zip (take n ls) (take (n+1) rs)
+
+toPair :: Zipper a -> ([a],[a])
+toPair (Zip ls rs) = (ls,rs)
+
+touch :: (a -> a) -> Zipper a -> Zipper a
+touch f (Zip ls (a:rs)) = Zip ls ((f a):rs)
+touch _ z = z
