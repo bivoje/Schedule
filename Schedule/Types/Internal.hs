@@ -9,6 +9,7 @@ import Data.Set (Set)
 import qualified Data.Set as S
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
 import Data.ByteString (ByteString)
 import Data.Function
 import Data.List (splitAt)
@@ -37,6 +38,8 @@ class (IsString s, Eq s, Monoid s) => IString s
 instance IString String where
 
 instance IString Text where
+
+instance IString LT.Text where
 
 instance IString ByteString where
 
