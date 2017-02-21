@@ -35,9 +35,29 @@ module Schedule.Types (
 
   -- db table types
   , Prof()
+  ,   prof_name
+  ,   prof_office
+  ,   prof_full
+  ,   prof_email
+
   , TeachAssi()
+
   , Course()
+  ,   crs_id
+  ,   title
+  ,   title_kr
+  ,   credit
+  ,   requir
+
   , Section()
+  ,   crsid
+  ,   sectno
+  ,   prof
+  ,   ta
+  ,   lectime
+  ,   roomid
+  ,   enroll_size
+  ,   semester
 
   , RefCrs()
   , RefSect()
