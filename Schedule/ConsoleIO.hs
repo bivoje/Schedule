@@ -19,30 +19,24 @@ data TriStat = Yes | No | Yet
 newtype Check a = Check (a, TriStat)
 
 
-{-
-we could return string to print in list, so that caller
-can convert it to image, or do whatever he wants.
-(c.f. chrsString :: Check Course -> String)
-But, it turned out to be  really hard to cut a string
-in title_kr with fixed garaphical width, since full- and
-half- width characters are mixed in it.
-Vty library functions (crop-seriese) support this like a charm!
--}
--- create Image for check Course to be used in checking list
-chcrsImage :: Attr -> Check Course -> Image
-chcrsImage attr (Check (crs,s)) =
-  let cid = text attr $ crsidTstr (crs_id crs)
-      tsp = charFill attr ' ' 50 1
-      tlt'= text' attr $ title_kr crs
-      tlt = cropRight 50 $ tlt' <|> tsp
-      cre = string attr $ show (credit crs)
-      gab = char attr ' '
-      tet = intersperse gab [cid,cre,tlt]
-    in mkcheckImage attr s $ horizCat tet
+class ToImage a where
+  imagine :: Attr -> a -> Image
 
+instance ToImage a => ToImage (Check a) where
+  imagine attr (Check (a,s)) =
+    mkcheckImage attr s $ imagine attr a
 
--- TODO we might have to make typeclass for this
--- (converting to image, ToImage, like ToJSON)
+instance ToImage Course where
+  imagine attr crs = 
+    let cid = text attr $ crsidTstr (crs_id crs)
+        tsp = charFill attr ' ' 50 1
+        tlt'= text' attr $ title_kr crs
+        tlt = cropRight 50 $ tlt' <|> tsp
+        cre = string attr $ show (credit crs)
+        gab = char attr ' '
+        tet = intersperse gab [cid,cre,tlt]
+     in horizCat tet
+
 
 -- add checking field to end of given image
 mkcheckImage :: Attr -> TriStat -> Image -> Image
