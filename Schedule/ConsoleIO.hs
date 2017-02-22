@@ -34,3 +34,25 @@ yet :: TriStat
 yet = Nothing
 
 type Check a = (a, TriStat)
+
+
+-- TODO we might have to make typeclass for this
+-- (converting to image, ToImage, like ToJSON)
+
+-- add checking field to end of given image
+mkcheckImage :: Attr -> TriStat -> Image -> Image
+mkcheckImage attr s img =
+  img <|> text attr (showtr s)
+  where showtr s = case s of
+          Just True  -> "| y"
+          Just False -> "| n"
+          Nothing    -> "|  "
+
+-- insnert checking field to start of given image
+mkcheckImage' :: Attr -> TriStat -> Image -> Image
+mkcheckImage' attr s img =
+  text attr (showtr s) <|> img
+  where showtr s = case s of
+          Just True  -> "y |"
+          Just False -> "n |"
+          Nothing    -> "  |"
