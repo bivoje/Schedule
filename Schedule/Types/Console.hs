@@ -6,9 +6,29 @@ import Data.List (intersperse)
 import Data.Maybe (mapMaybe)
 
 import Graphics.Vty
+import Graphics.Vty.Image.Internal (Image(BGFill))
 
 import Schedule.Types
 import Schedule.Types.Zipper
+
+
+-- these two functions are modified version of vty library functions
+
+-- | Resize the width. Pads and crops as required to assure the given
+-- display width. This is biased to pad/crop on the right.
+resizeWidth' :: Int -> Image -> Image
+resizeWidth' w i = case w `compare` imageWidth i of
+    LT -> cropLeft w i
+    EQ -> i
+    GT -> BGFill (w - imageWidth i) (imageHeight i) <|> i
+
+-- | Resize the height. Pads and crops as required to assure the given
+-- display height. This is biased to pad/crop on the bottom.
+resizeHeight' :: Int -> Image -> Image
+resizeHeight' h i = case h `compare` imageHeight i of
+    LT -> cropTop h i
+    EQ -> i
+    GT -> BGFill (imageWidth i) (h - imageHeight i) <-> i
 
 
 class ToImage a where
