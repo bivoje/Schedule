@@ -10,7 +10,7 @@ import Graphics.Vty
 import Control.Monad.RWS
 
 import Schedule.Types
-import Schedule.Zipper
+import Schedule.Types.Zipper
 
 
 data TriStat = Yes | No | Yet

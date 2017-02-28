@@ -1,4 +1,4 @@
-module Schedule.Zipper where
+module Schedule.Types.Zipper where
 
 import Control.Monad (liftM2)
 import Test.QuickCheck (Arbitrary(..), CoArbitrary(..))
