@@ -1,30 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Schedule.ConsoleIO where
+module Schedule.Types.Console where
 
--- import Data.Text as T
---import Data.Foldable (fold)
 import Data.List (intersperse)
-
 import Graphics.Vty
-import Control.Monad.RWS
 
 import Schedule.Types
-import Schedule.Types.Zipper
-
-
-data TriStat = Yes | No | Yet
-  deriving (Eq, Show, Read, Ord, Enum, Bounded)
-
-newtype Check a = Check (a, TriStat)
 
 
 class ToImage a where
   imagine :: Attr -> a -> Image
 
-instance ToImage a => ToImage (Check a) where
-  imagine attr (Check (a,s)) =
-    mkcheckImage attr s $ imagine attr a
 
 instance ToImage Course where
   imagine attr crs = 
@@ -37,6 +23,9 @@ instance ToImage Course where
         tet = intersperse gab [cid,cre,tlt]
      in horizCat tet
 
+
+data TriStat = Yes | No | Yet
+  deriving (Eq, Show, Read, Ord, Enum, Bounded)
 
 -- add checking field to end of given image
 mkcheckImage :: Attr -> TriStat -> Image -> Image
@@ -55,3 +44,10 @@ mkcheckImage' attr s img =
           Yes -> "y |"
           No  -> "n |"
           Yet -> "  |"
+
+
+newtype Check a = Check (a, TriStat)
+
+instance ToImage a => ToImage (Check a) where
+  imagine attr (Check (a,s)) =
+    mkcheckImage attr s $ imagine attr a
