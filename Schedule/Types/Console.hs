@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Schedule.Types.Console where
 
@@ -31,20 +33,37 @@ resizeHeight' h i = case h `compare` imageHeight i of
     GT -> BGFill (imageWidth i) (h - imageHeight i) <-> i
 
 
+defHiAttr = Attr { attrStyle = Default
+                 , attrForeColor = SetTo black
+                 , attrBackColor = SetTo white
+                 }
+
+
 class ToImage a where
   imagine :: Attr -> a -> Image
 
 
+instance ToImage String where
+  imagine = string
+
+
 instance ToImage Course where
-  imagine attr crs = 
+  imagine attr crs =
     let cid = text attr $ crsidTstr (crs_id crs)
-        tsp = charFill attr ' ' 50 1
         tlt'= text' attr $ title_kr crs
-        tlt = cropRight 50 $ tlt' <|> tsp
+        tlt = resizeWidth 50 $ tlt'
         cre = string attr $ show (credit crs)
         gab = char attr ' '
         tet = intersperse gab [cid,cre,tlt]
      in horizCat tet
+
+
+instance ToImage a => ToImage (Zipper a) where
+  imagine attr z = if isEmpty z then string attr "\n" else
+    let (abv,m:blw) = toPair z
+     in foldMap (imagine attr) (reverse abv)
+      <-> imagine defHiAttr m
+      <-> foldMap (imagine attr) blw
 
 
 data TriStat = Yes | No | Yet
@@ -108,3 +127,14 @@ czTlist = mapMaybe runCheck . toList
 
 -- windowed zipper
 newtype ZipperW a = ZipperW (Int, Zipper a)
+
+instance ToImage a => ToImage (ZipperW a) where
+  imagine attr (ZipperW (n,z)) =
+    let (abv',blw') = toPair $ windowz n z
+        abv = foldMap (imagine attr) (reverse abv')
+        (m,blw) = images blw'
+        abvi = resizeHeight' n abv
+        blwi = resizeHeight n blw
+     in abvi <-> m <-> blwi
+    where images [] = (emptyImage, emptyImage)
+          images (b:bs) = (imagine defHiAttr b, foldMap (imagine attr) bs)
