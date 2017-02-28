@@ -3,9 +3,12 @@
 module Schedule.Types.Console where
 
 import Data.List (intersperse)
+import Data.Maybe (mapMaybe)
+
 import Graphics.Vty
 
 import Schedule.Types
+import Schedule.Types.Zipper
 
 
 class ToImage a where
@@ -72,3 +75,16 @@ toggleCheck :: Check a -> Check a
 toggleCheck (Check (a,Yes)) = Check (a,No)
 toggleCheck (Check (a,No )) = Check (a,Yet)
 toggleCheck (Check (a,Yet)) = Check (a,Yes)
+
+
+-- checklist; list zipper; checkzipper
+type CheckZipper a = Zipper (Check a)
+
+listTcz :: [a] -> CheckZipper a
+listTcz = fromList . map (Check . flip (,) Yet)
+
+czTlist :: CheckZipper a -> [a]
+czTlist = mapMaybe runCheck . toList
+
+-- windowed zipper
+newtype ZipperW a = ZipperW (Int, Zipper a)
