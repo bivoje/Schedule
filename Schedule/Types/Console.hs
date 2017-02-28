@@ -51,3 +51,24 @@ newtype Check a = Check (a, TriStat)
 instance ToImage a => ToImage (Check a) where
   imagine attr (Check (a,s)) =
     mkcheckImage attr s $ imagine attr a
+
+runCheck :: Check a -> Maybe a
+runCheck (Check (a,Yes)) = Just a
+runCheck (Check (a,_)) = Nothing
+
+isYes :: Check a -> Bool
+isYes (Check (_,Yes)) = True
+isYes _ = False
+
+isNo :: Check a -> Bool
+isNo (Check (_,No)) = True
+isNo _ = False
+
+isYet :: Check a -> Bool
+isYet (Check (_,Yet)) = True
+isYet _ = False
+
+toggleCheck :: Check a -> Check a
+toggleCheck (Check (a,Yes)) = Check (a,No)
+toggleCheck (Check (a,No )) = Check (a,Yet)
+toggleCheck (Check (a,Yet)) = Check (a,Yes)
