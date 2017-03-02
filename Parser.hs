@@ -4,8 +4,9 @@
 module Parser
   ( parse_openlects
   , parse_timetable
-  , parse_requir
   , parse_credit
+  , parse_requir
+  , parse_crsid
   , ParseError
   ) where
 
@@ -134,9 +135,16 @@ parse_credit =
           return (read n :: Int)
 
 -- parse the 'requir' field
-parse_requir = parse p ""
-  where p = word `sepBy` (string "또는" <|> string "or")
+parse_requir = parse (q `sepBy` (string "또는" <|> string "or")) ""
+  where q = tokenize crsid
 
+parse_crsid = parse crsid ""
+
+crsid = do
+  let ls = ["GS","PS","CH","BS","EC","MC","MA","EV"]
+  s <- foldl1 (<|>) . map (try . string) $ ls
+  n <- count 4 (satisfy isNumber)
+  return $ s ++ n
 
 -- read a horizontally merged cell
 -- returns the number of cells merged with the cell content
@@ -172,7 +180,9 @@ followedBy :: Stream s m Char
            => ParsecT s u m t -> a -> ParsecT s u m a
 followedBy p a = p >> return a
 
-word = between spaces spaces $ many1 (satisfy $ not.isSpace)
+word = tokenize $ many1 (satisfy $ not.isSpace)
+
+tokenize = between spaces spaces
 
 except :: Stream s m Char => Char -> ParsecT s u m [Char]
 except c = many $ satisfy (/=c)
