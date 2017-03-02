@@ -61,6 +61,7 @@ module Schedule.Types (
 
   , RefCrs()
   , RefSect()
+  ,   refsectTstr
 
   ) where
 

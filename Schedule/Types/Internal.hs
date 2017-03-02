@@ -283,3 +283,7 @@ instance ToJSON RefSect where
   toJSON (RefSect rs) =
     object [ "crsid" .= crsid rs
            , "sectno" .= sectno rs ]
+
+refsectTstr :: IString s => RefSect -> s
+refsectTstr (RefSect a) =
+  crsidTstr (crsid a) `mappend` "-" `mappend` fromString (show $ sectno a)
