@@ -21,7 +21,7 @@ import Database.MySQL.Simple
 import Database.MySQL.Simple.QueryParams (QueryParams)
 import Database.MySQL.Base (MySQLError(..))
 
-import Parser (parse_requir,parse_credit)
+import Parser (parse_requir,parse_credit,parse_crsid)
 import Prompt
 
 
@@ -213,16 +213,18 @@ getCredit str = case parse_credit str of
     getNumberM "cre: "
 
 
-getRequir :: String -> IO (Maybe String, Maybe String, Maybe String)
-getRequir "" = return (Nothing, Nothing, Nothing)
+getRequir :: String -> IO [String]
+getRequir "" = return []
 getRequir str = case parse_requir str of
-  Right ls -> return . map nullize $ ls ++ ["","",""]
+  Right ls -> return ls
   Left _ -> do
     putStrLn "could not parse requir list from.."
     putStrLn $ "\"" ++ str ++ "\""
     putStrLn "please enter manually"
-    getStrFields ["rq1", "rq2", "rq3"]
-  >>= (\ls -> return (ls!!0,ls!!1,ls!!2))
+    promptLinesOf check_crsid
+  where check_crsid = right . parse_crsid
+        right (Right _) = True
+        right _ = False
 
 
 -- gets the strings to insert db from parsed one
@@ -259,18 +261,15 @@ insertCourse conn (crs,_,tlt',cre') =
       \ ;"
 
 
-updateCourse :: Connection -> (String,String)-> IO Bool
-updateCourse conn (crsid,req')= do
-  (rq1,rq2,rq3) <- getRequir req'
-  let args = (rq1,rq2,rq3,crsid)
-  --FIXME is it okay to use insert handler?
-  exInsertHandler (\q -> execute conn updq q >> return True) args
-  where
-    updq = "\
-      \ UPDATE course \
-      \ SET requir1 = ?, requir2 = ?, requir3 = ? \
-      \ WHERE crs_id = ? \
-      \ ;"
+insertRequir :: Connection -> (String,String)-> IO Int
+insertRequir conn (crsid,req')= do
+  reqs <- getRequir req'
+  let go = exInsertHandler (\q -> execute conn updq q >> return True)
+  length . filter id <$> mapM (\r -> go (r,crsid)) reqs
+  where updq = "\
+    \ INSERT INTO relation_requir \
+    \ VALUES (?,?) \
+    \ ;"
 
 
 -- top level of inserting to table 'course'
@@ -287,7 +286,7 @@ insertCourses conn tbl =
   in do
     bs <- mapM (insertCourse conn) tups
     putStrLn "now updating prerequisite field"
-    mapM_ (updateCourse conn) reqs
+    mapM_ (insertRequir conn) reqs
     return . length $ filter id bs
 
 
