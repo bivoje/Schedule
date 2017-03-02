@@ -28,17 +28,7 @@ CREATE TABLE IF NOT EXISTS course (
   -- classify CHAR(2) NOT NULL CHECK (classify IN ('EE')),
   title VARCHAR(100) NOT NULL,
   title_kr NVARCHAR(100) NOT NULL,
-  credit TINYINT NOT NULL,
-  /* requir 1, 2, 3 will be filled sequentially
-     assume there be not more than 3 requir */
-  requir1 CHAR(6) NULL,
-  requir2 CHAR(6) NULL,
-  requir3 CHAR(6) NULL,
-  CONSTRAINT FOREIGN KEY (requir1) REFERENCES course (crs_id),
-  CONSTRAINT FOREIGN KEY (requir2) REFERENCES course (crs_id),
-  CONSTRAINT FOREIGN KEY (requir3) REFERENCES course (crs_id),
-  CHECK ((requir1 IS NOT NULL OR requir2 IS NULL)
-     AND (requir2 IS NOT NULL OR requir3 IS NULL))
+  credit TINYINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS section (
@@ -65,4 +55,20 @@ CREATE TABLE IF NOT EXISTS class (
   period TINYINT NOT NULL,
   CONSTRAINT PRIMARY KEY (crsid, sectno, day, period),
   CONSTRAINT FOREIGN KEY (crsid,sectno) REFERENCES section (crsid,sect_no)
+);
+
+CREATE TABLE IF NOT EXISTS relation_requir (
+  requir CHAR(6) NOT NULL,
+  target CHAR(6) NOT NULL,
+  CONSTRAINT FOREIGN KEY (requir) REFERENCES course (crs_id),
+  CONSTRAINT FOREIGN KEY (target) REFERENCES course (crs_id),
+  CONSTRAINT PRIMARY KEY (requir,target)
+);
+
+CREATE TABLE IF NOT EXISTS relation_retake (
+  took CHAR(6) NOT NULL,
+  take CHAR(6) NOT NULL,
+  CONSTRAINT FOREIGN KEY (took) REFERENCES course (crs_id),
+  CONSTRAINT FOREIGN KEY (take) REFERENCES course (crs_id),
+  CONSTRAINT PRIMARY KEY (took,take)
 );
