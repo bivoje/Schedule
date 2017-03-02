@@ -12,6 +12,11 @@ import Schedule.Types.Zipper
 import Schedule.Types.Console
 
 
+
+-------------------------------------------------------------------------
+-- picker
+
+
 type Pick a = RWST Vty () (CheckZipper a) IO
 
 
@@ -46,6 +51,11 @@ viewCheckZipper :: ToImage a => Pick a ()
 viewCheckZipper = do
    pic <- gets $ picForImage . imagine defAttr . ZipperW . (,) 10
    ask >>= liftIO . flip update pic
+
+
+
+-------------------------------------------------------------------------
+-- Timetable Render
 
 
 renderTimetable = renderTimetable' ('│','─','┼',' ',8,3)
