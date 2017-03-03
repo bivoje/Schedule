@@ -113,14 +113,18 @@ insertTask action = do
 
 -- run necessary tasks for uploading in sequence
 runTask conn = runMaybeT $ do
-  obl <- task "loading openlects" $ parsingTask (parse_openlects "ex_openlects")
-  tbl <- task "loading timetable" $ parsingTask (parse_timetable "ex_timetable")
-  task_ "inserting professors" $ insertTask (insertProfs conn obl)
-  task_ "inserting courses" $ insertTask (insertCourses conn obl)
-  task_ "inserting sections" $ insertTask (insertSects conn obl)
+  let exo = "ex_openlects"
+  let ext = "ex_timetable"
+  obl <- task "loading openlects" $ parsingTask (parse_openlects exo)
+  tbl <- task "loading timetable" $ parsingTask (parse_timetable ext)
+  task_ "inserting che_professors"$ insertTask (insertTmpProfs conn obl)
+  task_ "inserting professors"    $ insertTask (mvTmpToProfs conn)
+  task_ "inserting courses"       $ insertTask (insertCourses conn obl)
+  task_ "inserting requirs"       $ insertTask (insertRequirs conn obl)
+  task_ "inserting sections"      $ insertTask (insertSects conn obl)
   -- wee need to edit insertRooms/Tmts 's return
-  task_ "inserting rooms" $ insertTask (insertRooms conn tbl)
-  task_ "inserting timetable" $ insertTask (insertTmts conn tbl)
+  task_ "inserting rooms"         $ insertTask (insertRooms conn tbl)
+  task_ "inserting timetable"     $ insertTask (insertTmts conn tbl)
 
 
 

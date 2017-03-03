@@ -2,8 +2,10 @@
 
 module Uploader
   ( UploaderUserHalting
-  , insertProfs
+  , insertTmpProfs
+  , mvTmpToProfs
   , insertCourses
+  , insertRequirs
   , insertSects
   , insertRooms
   , insertTmts
@@ -93,7 +95,7 @@ genErrorMessage e q = unlines $
 
 
 ----------------------------------------------------------------------
--- insert Professor
+-- insert che_Professor
 
 
 
@@ -166,6 +168,18 @@ insertTmpProf conn name = do
             \ ;"
 
 
+-- fills up cache table name conversion (che_professor)
+insertTmpProfs :: Connection -> [[String]] -> IO Int
+insertTmpProfs conn tbl = do
+  bs <- mapM (insertTmpProf conn) (transpose (drop 2 tbl) !! 5)
+  return . length . filter id $ bs
+
+
+
+----------------------------------------------------------------------
+-- insert Professor
+
+
 -- insert Teach data to db according to it's position (prof/ta ..)
 exInsertTeach :: Connection -> Teach -> IO Bool
 exInsertTeach conn teach = case teach of
@@ -178,27 +192,15 @@ exInsertTeach conn teach = case teach of
        in exInsertHandler (\q -> execute conn insq q >> return True) p
 
 
--- move the data from - to prof, ta db
+-- insert names of professors (and TAs!) to db,
 mvTmpToProfs :: Connection -> IO Int
 mvTmpToProfs conn = do
   -- FIXME should i handle this?
   snamess <- query_ conn selq
-  names <- return $ concatMap (read.fromOnly) snamess :: IO [Teach]
+  names <- return $  concatMap (read.fromOnly) snamess :: IO [Teach]
   bs <- mapM (exInsertTeach conn) names
   return . length $ filter id bs
   where selq = "SELECT names FROM che_professor"
-
-
--- top level of inserting to table 'professor'
--- insert names of professors (and TAs!) to db,
--- also fills up cache table name conversion (che_professor)
--- for use of another (course, section ..) task
-insertProfs :: Connection -> [[String]] -> IO Int
-insertProfs conn tbl = do
-  bs <- mapM (insertTmpProf conn) $ transpose (drop 2 tbl) !! 5
-  putStrLn "che_prof filled, start moving to prof"
-  mvTmpToProfs conn
-  return . length . filter id $ bs
 
 
 
@@ -217,20 +219,6 @@ getCredit str = case parse_credit str of
     putStrLn $ "\"" ++ str ++ "\""
     putStrLn "please enter manually"
     getNumberM "cre: "
-
-
-getRequir :: String -> IO [String]
-getRequir "" = return []
-getRequir str = case parse_requir str of
-  Right ls -> return ls
-  Left _ -> do
-    putStrLn "could not parse requir list from.."
-    putStrLn $ "\"" ++ str ++ "\""
-    putStrLn "please enter manually"
-    promptLinesOf check_crsid
-  where check_crsid = right . parse_crsid
-        right (Right _) = True
-        right _ = False
 
 
 -- gets the strings to insert db from parsed one
@@ -267,6 +255,38 @@ insertCourse conn (crs,_,tlt',cre') =
       \ ;"
 
 
+-- does not depend on che_professor
+-- returns the number of courses inserted
+insertCourses :: Connection -> [[String]] -> IO Int
+insertCourses conn tbl =
+  let contbl = drop 2 tbl
+      nubtbl = map head $ groupBy ((==) `on` (!!2)) contbl
+      -- (crs_id, classify, title', credit')
+      tups = map (\s -> (s!!2,s!!1,s!!3,s!!4)) nubtbl
+  in do
+    bs <- mapM (insertCourse conn) tups
+    return . length . filter id $ bs
+
+
+
+----------------------------------------------------------------------
+-- insert Requir
+
+
+getRequir :: String -> IO [String]
+getRequir "" = return []
+getRequir str = case parse_requir str of
+  Right ls -> return ls
+  Left _ -> do
+    putStrLn "could not parse requir list from.."
+    putStrLn $ "\"" ++ str ++ "\""
+    putStrLn "please enter manually"
+    promptLinesOf check_crsid
+  where check_crsid = right . parse_crsid
+        right (Right _) = True
+        right _ = False
+
+
 insertRequir :: Connection -> (String,String)-> IO Int
 insertRequir conn (crsid,req')= do
   reqs <- getRequir req'
@@ -278,22 +298,13 @@ insertRequir conn (crsid,req')= do
     \ ;"
 
 
--- top level of inserting to table 'course'
--- does not depend on che_professor
--- returns the number of courses inserted
-insertCourses :: Connection -> [[String]] -> IO Int
-insertCourses conn tbl =
+insertRequirs :: Connection -> [[String]] -> IO Int
+insertRequirs conn tbl =
   let contbl = drop 2 tbl
       nubtbl = map head $ groupBy ((==) `on` (!!2)) contbl
-      -- (crs_id, classify, title', credit')
-      tups = map (\s -> (s!!2,s!!1,s!!3,s!!4)) nubtbl
       -- (crs_id, requir')
       reqs = map (\s -> (s!!2,s!!9)) nubtbl
-  in do
-    bs <- mapM (insertCourse conn) tups
-    putStrLn "now updating prerequisite field"
-    mapM_ (insertRequir conn) reqs
-    return . length $ filter id bs
+   in sum <$> mapM (insertRequir conn) reqs
 
 
 
