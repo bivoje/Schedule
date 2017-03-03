@@ -130,13 +130,13 @@ runTask conn = runMaybeT $ do
 
 -- ask user for information then connect to db server
 connectPrompt :: IO Connection
-connectPrompt = withBuff LineBuffering $ do
+connectPrompt = withBuff stdin LineBuffering $ do
   putStrLn "enter connection information"
   u <- putStr "user: " >> getLine
   h <- putStr "host: " >> getLine
   p <- getNumber "port: "
   d <- putStr "dtbs: " >> getLine
-  pws <- putStr "passwd: " >> withEcho False getLine
+  pws <- putStr "passwd: " >> withEcho False stdin getLine
   putStrLn "" -- stdin's newline (enter) not echoed
   putStrLn "connecting to db.."
   connect defaultConnectInfo
@@ -146,21 +146,23 @@ connectPrompt = withBuff LineBuffering $ do
     , connectDatabase = d
     , connectPassword = pws
     }
-  where
-    withEcho echo act = do
-      old <- hGetEcho stdin
-      bracket_ (hSetEcho stdin echo) (hSetEcho stdin old) act
-    withBuff buff act = do
-      old <- hGetBuffering stdin
-      bracket_ (hSetBuffering stdin buff) (hSetBuffering stdin old) act
+
+
+withEcho echo strm act = do
+  old <- hGetEcho strm
+  bracket_ (hSetEcho strm echo) (hSetEcho strm old) act
+
+
+withBuff strm buff act = do
+  old <- hGetBuffering strm
+  bracket_ (hSetBuffering strm buff) (hSetBuffering strm old) act
 
 
 -- main functions
 -- connects to server, does the tasks,
 -- closes connection even though exception occurs
 main :: IO ()
-main = do
-  hSetBuffering stdin LineBuffering
+main = withBuff stdin LineBuffering . withBuff stdout NoBuffering $ do
   bracket connectPrompt close runTask
     `catch` (\(e::MySQLError) -> do
        putStrLn "check your connection to db"
