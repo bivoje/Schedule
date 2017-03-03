@@ -31,12 +31,13 @@ import Data.String
 -}
 
 
--- represents most of the string types (String, Text, ByteString, etc)
--- IsString for string literal
--- Eq for pattern matching
--- Monoid for appending
--- probably Text will be used for the most of the time than other
--- to be efficient (string) and encoding-safe (bytestring)
+{- represents most of the string types (String, Text, ByteString, etc)
+ - IsString for string literal
+ - Eq for pattern matching
+ - Monoid for appending
+ - probably Text will be used for the most of the time than other
+ - to be efficient (string) and encoding-safe (bytestring)
+ -}
 class (IsString s, Eq s, Monoid s) => IString s
 
 instance IString String where
@@ -53,10 +54,14 @@ wrap :: (c -> d) -> (a -> b -> c) -> a -> b -> d
 wrap f g a b= f (g a b)
 
 -- it should have imported with Data.Monoid
--- but somehow it haven't
+-- but for some reason, it haven't
 infixr 6 <>
 (<>) :: Monoid m => m -> m -> m
 (<>) = mappend
+
+
+------------------------------------------------------------------
+-- Primitive types
 
 
 -- 4 seasons(terms) of semester
@@ -183,13 +188,11 @@ strTcrsid s =
     f s@[_,_,_,_] | all isNumber s = Just (read s)
     f s = Nothing
 
--- required by tojson instance of refcrs
 instance ToJSON Crsid where
   toJSON (Crsid s c) =
     object [ "school" .= s
            , "code" .= c ]
 
--- required by tojson instance of refsect
 instance FromJSON Crsid where
   parseJSON (Object v) =
     Crsid <$> v .: "school"
@@ -229,6 +232,10 @@ type LecTimeSet = Set LecTime
 
 -- room name (e.g. "대학A 105")
 type RoomId = Text
+
+
+------------------------------------------------------------------
+-- Complex types
 
 
 -- professor data

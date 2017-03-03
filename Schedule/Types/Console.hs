@@ -33,19 +33,19 @@ resizeHeight' h i = case h `compare` imageHeight i of
     GT -> BGFill (imageWidth i) (h - imageHeight i) <-> i
 
 
+-- default Hightlight attribute
 defHiAttr = Attr { attrStyle = Default
                  , attrForeColor = SetTo black
                  , attrBackColor = SetTo white
                  }
 
 
+-- types that can be converted to vty images
 class ToImage a where
   imagine :: Attr -> a -> Image
 
-
 instance ToImage String where
   imagine = string
-
 
 instance ToImage Course where
   imagine attr crs =
@@ -57,7 +57,6 @@ instance ToImage Course where
         tet = intersperse gab [cid,cre,tlt]
      in horizCat tet
 
-
 instance ToImage a => ToImage (Zipper a) where
   imagine attr z = if isEmpty z then string attr "\n" else
     let (abv,m:blw) = toPair z
@@ -66,21 +65,24 @@ instance ToImage a => ToImage (Zipper a) where
       <-> foldMap (imagine attr) blw
 
 
+-- Maybe Bool replacement for the pattern matching comfort
 data TriStat = Yes | No | Yet
   deriving (Eq, Show, Read, Ord, Enum, Bounded)
 
--- add checking field to end of given image
-mkcheckImage :: Attr -> TriStat -> Image -> Image
-mkcheckImage attr s img =
+-- add following state field to given image
+-- "field1 field2" :> "field1 field2 | y"
+stateImage :: Attr -> TriStat -> Image -> Image
+stateImage attr s img =
   img <|> text attr (showtr s)
   where showtr s = case s of
           Yes -> "| y"
           No  -> "| n"
           Yet -> "|  "
 
--- insnert checking field to start of given image
-mkcheckImage' :: Attr -> TriStat -> Image -> Image
-mkcheckImage' attr s img =
+-- add leading state field to given image
+-- "field1 field2" :> "y | field1 field2"
+stateImage' :: Attr -> TriStat -> Image -> Image
+stateImage' attr s img =
   text attr (showtr s) <|> img
   where showtr s = case s of
           Yes -> "y |"
@@ -88,6 +90,7 @@ mkcheckImage' attr s img =
           Yet -> "  |"
 
 
+-- wrapper that adds attribute of tristate to 'a'
 data Check a = Check a TriStat
 
 instance ToImage a => ToImage (Check a) where
@@ -116,7 +119,7 @@ toggleCheck (Check a No ) = Check a Yet
 toggleCheck (Check a Yet) = Check a Yes
 
 
--- checklist; list zipper; checkzipper
+-- check-list + list-zipper :> checkzipper
 type CheckZipper a = Zipper (Check a)
 
 listTcz :: [a] -> CheckZipper a
@@ -125,9 +128,14 @@ listTcz = fromList . map (flip Check . Yet)
 czTlist :: CheckZipper a -> [a]
 czTlist = mapMaybe runCheck . toList
 
+
 -- windowed zipper
 newtype ZipperW a = ZipperW (Int, Zipper a)
 
+-- behavior of imagine ZipperW is differenct from that of imagine Zipper
+-- with that ZipperW would pad the lines of there isn't sufficient
+-- elements in it, c.f. image's heigt of imagine ZippweW is always 2n+1
+-- while imagine Zipper would vary
 instance ToImage a => ToImage (ZipperW a) where
   imagine attr (ZipperW (n,z)) =
     let (abv',blw') = toPair $ windowz n z

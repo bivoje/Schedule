@@ -25,6 +25,14 @@ import Schedule.Types.Internal
 {- DBServer module imports Types.Internal directly
  - and provides getter-functions of some composite types.
  - Using those functions would guarantee the validity of the data.
+ -
+ - Paradigm in types of all the getters is primitive.
+ - They take and return minimal information for the given task.
+ - for example getRequir has type of 'Crsid -> IO CrsidSet'
+ - not 'Crsid -> IO [RefCourse]' nor 'Course -> IO [RefCourse]'.
+ - The reason they return Ref-version instead of raw data
+ - (c.f. RefSect instead of just Sect) is because for the most of the time
+ - complex data will be refered with Ref-version
  -}
 
 
@@ -70,6 +78,8 @@ getLectime conn (c,n) =
     \ ;"
 
 
+-- returns all the crsid that is in requir-relation with given crs
+-- all x where (x ~> crs), c.f. (x, crs)
 getRequir :: Connection -> Crsid -> IO CrsidSet
 getRequir conn crs =
   S.fromList . map fromOnly <$> query conn selq (Only crs)

@@ -43,9 +43,11 @@ fromListEnd :: [a] -> Zipper a
 fromListEnd    []  = Zip [] []
 fromListEnd (a:as) = Zip (reverse as) [a]
 
+-- | opposite operation of fromList
 toList :: Zipper a -> [a]
 toList (Zip ls rs) = reverse ls ++ rs
 
+-- | check whether the list is empty
 isEmpty :: Zipper a -> Bool
 isEmpty (Zip [] []) = True
 isEmpty _ = False
@@ -68,18 +70,17 @@ emptyp :: Zipper a -> Bool
 emptyp (Zip [] []) = True
 emptyp _           = False
 
+-- | zip-up to the start of the Zipper
 start, end :: Zipper a -> Zipper a
 start (Zip ls rs) = Zip [] (reverse ls ++ rs)
+
+-- | zip-down to the end of the Zipper
 end z@(Zip _  []) = z
 end   (Zip ls rs) =
   let (x:xs) = reverse rs ++ ls
    in Zip xs [x]
 
 -- | @cursor z@ returns the targeted element in @z@.
---
--- This function is not total, but the invariant is that
--- @endp z == False@ means that you can safely call
--- @cursor z@.
 cursor :: Zipper a -> a
 cursor (Zip _ (a:_)) = a
 
@@ -115,7 +116,7 @@ delete z               = z
 
 -- | @replace a z@ changes the current element in the zipper
 -- to the passed in value.  If there is no current element,
--- the zipper is unchanged.  If you want to add the element
+-- the zipper is left unchanged. If you want to add the element
 -- in that case instead, use @insert a (delete z)@.
 replace :: a -> Zipper a -> Zipper a
 replace a (Zip ls (_:rs)) = Zip ls (a:rs)
@@ -177,12 +178,17 @@ extendz f z@(Zip ls rs) = Zip ls' rs' where
     ls' = foldrz (\z' xs -> f (reversez $ right z') : xs) [] $ reversez z
 -}
 
+-- | @windowz n z) returns a new zipper that contains at most @n@ number
+-- of elements in each side of its cursor
 windowz :: Int -> Zipper a -> Zipper a
 windowz n (Zip ls rs) = Zip (take n ls) (take (n+1) rs)
 
+-- | returns the left and right part of zipper in a pair
 toPair :: Zipper a -> ([a],[a])
 toPair (Zip ls rs) = (ls,rs)
 
+-- | @touch f z@ will apply f to cursor of z
+-- nothing happens if there's no cursor
 touch :: (a -> a) -> Zipper a -> Zipper a
 touch f (Zip ls (a:rs)) = Zip ls ((f a):rs)
 touch _ z = z

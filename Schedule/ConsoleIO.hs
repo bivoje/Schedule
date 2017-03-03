@@ -20,6 +20,7 @@ import Schedule.Types.Console
 type Pick a = RWST Vty () (CheckZipper a) IO
 
 
+-- prompt user to pick from given list using vty-ui
 pickFrom :: ToImage a => [a] -> IO [a]
 pickFrom ls = do
   vty <- mkVty defaultConfig
@@ -28,6 +29,7 @@ pickFrom ls = do
   return $ czTlist s
 
 
+-- interacting loop of picker
 pickProcess :: ToImage a => Pick a ()
 pickProcess = do
   viewCheckZipper
@@ -36,6 +38,7 @@ pickProcess = do
   when b pickProcess
 
 
+-- user interact handler
 pickKeyHandle :: Event -> Pick a Bool
 pickKeyHandle (EvKey (KChar 'q') []) = return False
 pickKeyHandle k = case k of
@@ -47,6 +50,7 @@ pickKeyHandle k = case k of
   where ch = touch toggleCheck
 
 
+-- update screen with current pick state
 viewCheckZipper :: ToImage a => Pick a ()
 viewCheckZipper = do
    pic <- gets $ picForImage . imagine defAttr . ZipperW . (,) 10
@@ -60,7 +64,9 @@ viewCheckZipper = do
 
 renderTimetable = renderTimetable' ('│','─','┼',' ',8,3)
 
+-- convert the timetable scheme (ttm) to printable format
 -- assumes ttm is proper matrix
+-- (all ((==x) . length) ttm where x = lengnth $ head ttm)
 renderTimetable' :: (Char,Char,Char,Char,Int,Int)
                  -> [[Maybe RefSect]] -> Text
 renderTimetable' (horzd,vertd,cross,sps,celw,nu) ttm' =
