@@ -375,7 +375,7 @@ insertSect conn secn (_,crsid,prof',enrol',sme) = do
   exInsertHandler (\q -> execute conn insq q >> return True) args
   where insq = "\
     \ INSERT INTO \
-    \   section (sect_no, crsid, prof, ta, enroll_size,sme) \
+    \   section (sect_no, crsid, prof, ta, enroll_size,semester) \
     \ VALUES (?,?,?,?,?,?); \
     \ "
 
