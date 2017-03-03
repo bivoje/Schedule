@@ -17,7 +17,7 @@ import Data.Maybe
 import Control.Monad
 import Control.Exception
 import System.IO.Error
-import Database.MySQL.Simple
+import Database.MySQL.Simple hiding (errMessage)
 import Database.MySQL.Simple.QueryParams (QueryParams)
 import Database.MySQL.Base (MySQLError(..))
 
@@ -61,15 +61,14 @@ exInsertHandler :: (QueryParams q, Show q, Read q)
 exInsertHandler act q =
   catchJust f (act q) (handleInsert act q)
   where f e = if errNumber e `elem` [1062, 1452]
-              then Just (errNumber e) else Nothing
+              then Just e else Nothing
 
 
 -- handle MySQLError exception
-handleInsert :: (QueryParams q, Show q, Read q) => (q -> IO Bool) -> q -> Int -> IO Bool
-handleInsert act q eno = do
-  putStrLn $ case eno of
-    1062 -> "dupkey error occured while inserting/updating " ++ show q
-    1452 -> "foreign key constraints failed inserting/updating " ++ show q
+handleInsert :: (QueryParams q, Show q, Read q)
+             => (q -> IO Bool) -> q -> MySQLError -> IO Bool
+handleInsert act q e = do
+  putStr $ genErrorMessage e q
   ans <- getAnsWithin "retry/skip/input/halt" ["r", "s", "i", "h"]
   case ans of 0 -> exInsertHandler act q
               1 -> return False
@@ -80,6 +79,16 @@ handleInsert act q eno = do
           [(a,t)] -> Left ("Trailing characters \"" ++ t ++ "\"")
           [] -> Left "could not parse!! re-enter\narg: ")
 
+
+genErrorMessage :: (QueryParams q, Show q) => MySQLError -> q -> String
+genErrorMessage e q = unlines $
+  [ case errNumber e of
+      1062 -> "dupkey error occured while inserting/updating"
+      1452 -> "foreign key constraints failed inserting/updating"
+  , "in function " ++ errFunction e
+  , "detailed: " ++ errMessage e
+  , "with arg: " ++ show q
+  ]
 
 
 
