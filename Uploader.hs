@@ -37,12 +37,8 @@ omitSpan f ls = case span f ls of (as,c:bs) -> (as,bs)
                                   x         -> x
 
 
-boolMaybe :: (a -> Bool) -> a -> Maybe a
-boolMaybe f a = guard (f a) >> return a
-
-
-takeWhileEnd :: (a -> Bool) -> [a] -> [a]
-takeWhileEnd f = reverse . takeWhile f . reverse
+countTrue :: [Bool] -> Int
+countTrue = length . filter id
 
 
 data Teach = PR String
@@ -83,7 +79,7 @@ handleInsert act q e = do
 
 
 genErrorMessage :: (QueryParams q, Show q) => MySQLError -> q -> String
-genErrorMessage e q = unlines $
+genErrorMessage e q = unlines
   [ case errNumber e of
       1062 -> "dupkey error occured while inserting/updating"
       1452 -> "foreign key constraints failed inserting/updating"
@@ -170,9 +166,8 @@ insertTmpProf conn name = do
 
 -- fills up cache table name conversion (che_professor)
 insertTmpProfs :: Connection -> [[String]] -> IO Int
-insertTmpProfs conn tbl = do
-  bs <- mapM (insertTmpProf conn) (transpose (drop 2 tbl) !! 5)
-  return . length . filter id $ bs
+insertTmpProfs conn tbl = countTrue <$>
+  mapM (insertTmpProf conn) (transpose (drop 2 tbl) !! 5)
 
 
 
@@ -197,9 +192,8 @@ mvTmpToProfs :: Connection -> IO Int
 mvTmpToProfs conn = do
   -- FIXME should i handle this?
   snamess <- query_ conn selq
-  names <- return $  concatMap (read.fromOnly) snamess :: IO [Teach]
-  bs <- mapM (exInsertTeach conn) names
-  return . length $ filter id bs
+  let names = concatMap (read.fromOnly) snamess :: [Teach]
+  countTrue <$> mapM (exInsertTeach conn) names
   where selq = "SELECT names FROM che_professor"
 
 
@@ -263,9 +257,7 @@ insertCourses conn tbl =
       nubtbl = map head $ groupBy ((==) `on` (!!2)) contbl
       -- (crs_id, classify, title', credit')
       tups = map (\s -> (s!!2,s!!1,s!!3,s!!4)) nubtbl
-  in do
-    bs <- mapM (insertCourse conn) tups
-    return . length . filter id $ bs
+   in countTrue <$> mapM (insertCourse conn) tups
 
 
 
@@ -291,7 +283,7 @@ insertRequir :: Connection -> (String,String)-> IO Int
 insertRequir conn (crsid,req')= do
   reqs <- getRequir req'
   let go = exInsertHandler (\q -> execute conn updq q >> return True)
-  length . filter id <$> mapM (\r -> go (r,crsid)) reqs
+  countTrue <$> mapM (\r -> go (r,crsid)) reqs
   where updq = "\
     \ INSERT INTO relation_requir \
     \ VALUES (?,?) \
@@ -389,9 +381,8 @@ insertSect conn secn (_,crsid,prof',enrol',sme) = do
 
 
 insertSectGrp :: Connection -> [(String,String,String,String,Int)] -> IO Int
-insertSectGrp conn grps =
-  let ex = zipWithM (insertSect conn) [1..] grps
-   in fmap (length . filter id) ex
+insertSectGrp conn grps = countTrue <$>
+  zipWithM (insertSect conn) [1..] grps
 
 
 insertSects :: Connection -> [[String]] -> IO Int
@@ -470,7 +461,7 @@ exInsertRoom conn arg =
 insertRooms :: Connection -> Pcells -> IO Int
 insertRooms conn pcells =
   let vcells = filterNoRoom . concat . concat $ pcells
-   in length . filter id <$> mapM (g >=> exInsertRoom conn) vcells
+   in countTrue <$> mapM (g >=> exInsertRoom conn) vcells
   where filterNoRoom = filter f
         f (_,_,_,d) = not $ null d
         g (a,b,c,d) = do
@@ -497,18 +488,14 @@ exInsertTmt conn arg =
 insertVcells :: Connection -> Int -> Int -> Vcells -> IO Int
 insertVcells conn np nd vcells =
   let days = ["MON", "TUE", "WED", "THR", "FRI", "SAT", "SUN"]
-      d = days !! (nd-1)
-      p = np
-  in do
-    bs <- mapM (insvc p d >=> exInsertTmt conn) vcells
-    return . length $ filter id bs
+      (d,p) = (days !! (nd-1), np)
+  in countTrue <$> mapM (insvc p d >=> exInsertTmt conn) vcells
   where insvc p d (a,_,c,_) = do
           sectno <- getSectno c
           return (a,sectno,d,p)
 
 
 insertTmts :: Connection -> Pcells -> IO Int
-insertTmts conn pcells = do
-  ns <- zipWithM insp [1..] $ filterEmpty pcells
-  return . sum . concat $ ns
+insertTmts conn pcells =
+  sum . concat <$> zipWithM insp [1..] (filterEmpty pcells)
   where insp p = zipWithM (insertVcells conn p) [1..]
