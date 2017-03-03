@@ -73,17 +73,16 @@ getLectime conn (c,n) =
 readRequir :: [Maybe String] -> CrsidSet
 readRequir = S.fromList . mapMaybe (>>= strTcrsid)
 
-getRequir :: Connection -> Crsid -> IO (Maybe CrsidSet)
-getRequir conn c = do
-  x <- query conn selq $ Only (crsidTstr c :: Text)
-  return $ case x of
-    [] -> Nothing
-    [(r1,r2,r3)] -> Just $ readRequir [r1,r2,r3]
+
+getRequir :: Connection -> Crsid -> IO CrsidSet
+getRequir conn crs =
+  S.fromList . map fromOnly <$> query conn selq (Only crs)
   where selq = "\
-  \ SELECT requir1, requir2, requir3 \
-  \ FROM course \
-  \ WHERE crs_id = ? \
-  \ ;"
+    \ SELECT requir \
+    \ FROM relation_requir \
+    \ WHERE target = ? \
+    \ ;"
+
 
 -- gets Prof information for given name from the server
 -- returns Nothing in either case of not existing and not complete
