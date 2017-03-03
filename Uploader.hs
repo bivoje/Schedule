@@ -322,6 +322,7 @@ getEnrol :: String -> IO (Maybe Int)
 getEnrol "" = return Nothing
 getEnrol str = case reads str :: [(Int,String)] of
   [(a,'명':_)] -> return $ Just a
+  [(a,"")] -> return $ Just a
   _ -> do
     putStrLn "could not parse enrol number from.."
     putStrLn $ "\"" ++ str ++ "\""
@@ -438,7 +439,7 @@ getSectno str =
         putStrLn "could not parse sect number from.."
         putStrLn $ "\"" ++ str ++ "\""
         putStrLn "please enter manually"
-        getNumber "cre: "
+        getNumber "sectno: "
 
 
 -- merely excutes the query to db

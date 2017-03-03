@@ -68,6 +68,8 @@ retask tstr action = do
 -- returns Nothing if the action is halted
 task :: String -> IO a -> MaybeT IO a
 task tstr action = MaybeT $ do
+  putStrLn ""
+  putStrLn $ replicate 50 '-'
   putStrLn $ "task: " ++ tstr
   retask tstr action
 
@@ -91,6 +93,8 @@ retask_ tstr action = do
 -- just like mapM_ does
 task_ :: String -> IO a -> MaybeT IO ()
 task_ tstr action = MaybeT $ do
+  putStrLn ""
+  putStrLn $ replicate 50 '-'
   putStrLn $ "task: " ++ tstr
   retask_ tstr action
 
