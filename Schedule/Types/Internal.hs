@@ -11,11 +11,15 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
 import Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as B8 (unpack)
 import Data.Function
 import Data.List (splitAt)
 import Data.Char (isNumber)
 import Control.Monad
-import Control.Exception (assert)
+import Control.Exception (assert,throw)
+import qualified Database.MySQL.Base.Types as DB
+import qualified Database.MySQL.Simple.Result as DB
+import qualified Database.MySQL.Simple.Param as DB
 
 import Data.String
 
@@ -186,6 +190,17 @@ instance ToJSON Crsid where
 -- required by tojson instance of refsect
 instance FromJSON Crsid where
   parseJSON x = Crsid <$> parseJSON x
+
+instance DB.Param Crsid where
+  render = DB.render . (crsidTstr :: Crsid -> Text)
+
+instance DB.Result Crsid where
+  convert f x =
+    let str = DB.convert f x :: String
+    in case strTcrsid str of
+      Just a -> a
+      Nothing -> throw $ DB.ConversionFailed (show $ DB.fieldType f)
+        "Crsid" (B8.unpack (DB.fieldName f)) "could not parse"
 
 
 -- Lectime {Monday 3} : third lecture time on Monday
