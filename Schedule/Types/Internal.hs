@@ -158,7 +158,7 @@ instance FromJSON School where
 
 -- course id (e.g. GS1101)
 -- constructor is hidden to outside
-newtype Crsid = Crsid (School,Int)
+data Crsid = Crsid School Int
   deriving (Eq, Show, Read, Ord)
 
 type CrsidSet = Set Crsid
@@ -167,7 +167,7 @@ type CrsidSet = Set Crsid
 -- e.g. (GS,101) -> "GS0101"
 -- crsid assumed to have valid values
 crsidTstr :: IString s => Crsid -> s
-crsidTstr (Crsid (sc,n)) = assert (0 <= n && n < 10000) $
+crsidTstr (Crsid sc n) = assert (0 <= n && n < 10000) $
   schoolTstr sc <> fromString (swrap n)
   where swrap = reverse . take 4 . reverse . (zeros ++) . show
         zeros = replicate 4 '0'
@@ -177,19 +177,24 @@ crsidTstr (Crsid (sc,n)) = assert (0 <= n && n < 10000) $
 strTcrsid :: String -> Maybe Crsid
 strTcrsid s =
   let (sc,n) = splitAt 2 s
-  in Crsid `wrap` (,) <$> strTschool sc
-                      <*> f n
+  in Crsid <$> strTschool sc
+           <*> f n
   where -- efficiently (lazily?) check if the length is 4
     f s@[_,_,_,_] | all isNumber s = Just (read s)
     f s = Nothing
 
 -- required by tojson instance of refcrs
 instance ToJSON Crsid where
-  toJSON (Crsid c) = toJSON c
+  toJSON (Crsid s c) =
+    object [ "school" .= s
+           , "code" .= c ]
 
 -- required by tojson instance of refsect
 instance FromJSON Crsid where
-  parseJSON x = Crsid <$> parseJSON x
+  parseJSON (Object v) =
+    Crsid <$> v .: "school"
+          <*> v .: "code"
+  parseJSON _ = fail "expected course id"
 
 instance DB.Param Crsid where
   render = DB.render . (crsidTstr :: Crsid -> Text)
