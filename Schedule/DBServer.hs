@@ -70,10 +70,6 @@ getLectime conn (c,n) =
     \ ;"
 
 
-readRequir :: [Maybe String] -> CrsidSet
-readRequir = S.fromList . mapMaybe (>>= strTcrsid)
-
-
 getRequir :: Connection -> Crsid -> IO CrsidSet
 getRequir conn crs =
   S.fromList . map fromOnly <$> query conn selq (Only crs)
@@ -112,14 +108,13 @@ getRefCrs conn c = do
   x <- query conn selq $ Only (crsidTstr c :: Text)
   return $ case x of
     [] -> Nothing
-    -- all fields except requirs are not null, we don't check nullity
-    [(tlt,tlk,cre,rq1,rq2,rq3)] -> Just . RefCrs $ Course {
-      crs_id = c, title = tlt, title_kr = tlk, credit = cre,
-      requir = readRequir [rq1,rq2,rq3]
+    -- all fields are not null, we don't check nullity
+    [(tlt,tlk,cre)] -> Just . RefCrs $ Course {
+      crs_id = c, title = tlt, title_kr = tlk, credit = cre
     }
   where
     selq = "\
-      \ SELECT title, title_kr, credit, requir1, requir2, requir3 \
+      \ SELECT title, title_kr, credit \
       \ FROM course \
       \ WHERE crs_id = ? \
       \ ;"

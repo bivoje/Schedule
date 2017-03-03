@@ -251,7 +251,6 @@ data Course = Course
   , title    :: Text
   , title_kr :: Text
   , credit   :: Int
-  , requir   :: CrsidSet
   } deriving (Show, Read)
 
 
