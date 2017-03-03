@@ -80,17 +80,6 @@ handleInsert act q eno = do
           [(a,t)] -> Left ("Trailing characters \"" ++ t ++ "\"")
           [] -> Left "could not parse!! re-enter\narg: ")
 
--- check whether db know the name (field) already
--- 'Query' argument is a kind of trick makin use of
--- (Only) string literals can be intepreted as Query type
--- because variables (QeuryParams) are quoted automatically
--- (e.f user-inputs inevitably be quoted. very clever)
-checkKeyInDB :: QueryParams q
-             => Connection -> Query -> Query -> q -> IO Bool
-checkKeyInDB conn tbl key val = do
-  [Only num] <- query conn selq val
-  return $ num /= (0 :: Int)
-  where selq = mconcat ["SELECT COUNT(", key, ") FROM ", tbl, " WHERE ", key, "= ?"]
 
 
 
@@ -154,10 +143,18 @@ exInsertTmpProf conn q =
 -- returns the number of inserted rows (of db)
 insertTmpProf :: Connection -> String -> IO Bool
 insertTmpProf conn name = do
-  dbknows <- checkKeyInDB conn "che_professor" "name" (Only name)
+  dbknows <- checkKeyInDB conn (Only name)
   if dbknows then return False else do
     rfname <- refineTmpProf name
     exInsertTmpProf conn (name,rfname)
+  where checkKeyInDB conn val = do
+          [Only num] <- query conn selq val
+          return $ num /= (0 :: Int)
+          where selq = "\
+            \ SELECT COUNT(name) \
+            \ FROM che_professor \
+            \ WHERE name = ? \
+            \ ;"
 
 
 -- insert Teach data to db according to it's position (prof/ta ..)
