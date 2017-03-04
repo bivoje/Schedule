@@ -62,12 +62,9 @@ getConnection = do
 
 -- gets Lectimes related with given crsid and sect# from the server
 -- returns empty set if no lectime found
--- returns Nothing if server contains invalid value (mostly weekday)
--- this occurs because db (mysql) does not support 'check' clause
-getLectime :: Connection -> Sectid -> IO (Maybe LectimeSet)
-getLectime conn (Sectid c n) =
-  fmap S.fromList . mapM (\(w,p) -> flip Lectime p <$> strTweekday w)
-  <$> (query conn selq (crsidTstr c :: Text, n) :: IO [(Text,Int)])
+getLectime :: Connection -> Sectid -> IO LectimeSet
+getLectime conn (Sectid c n) = S.fromList . map (uncurry Lectime)
+  <$> query conn selq (crsidTstr c :: Text, n)
   where selq = "\
     \ SELECT day, period \
     \ FROM class \
@@ -136,11 +133,10 @@ getSect conn s@(Sectid c n) = do
   case fmap nullize5 x of
     [] -> return Nothing          -- nothing on database
     [Nothing] -> return Nothing   -- database is not coplete
-    [Just (prf,t,rom,sz,sme')] -> runMaybeT $ do
+    [Just (prf,t,rom,sz,sme)] -> do
       -- FIXME we can do join instead ??
-      ltm <- MaybeT $ getLectime conn s
-      sme <- MaybeT . return $ intTsemester sme'
-      return $ Section {
+      ltm <- getLectime conn s
+      return . Just $ Section {
         sect_id = s, prof = prf, ta = t,
         lectime = ltm, roomid = rom, enroll_size = sz, semester = sme
       }
