@@ -293,8 +293,8 @@ data Course = Course
 -- section data
 data Section = Section
   { sect_id :: Sectid
-  , prof    :: Prof
-  , ta      :: TeachAssi
+  , prof    :: Text
+  , ta      :: Text
   , lectime :: LectimeSet
   , roomid  :: RoomId
   , enroll_size :: Int

@@ -136,13 +136,12 @@ getSect conn s@(Sectid c n) = do
   case fmap nullize5 x of
     [] -> return Nothing          -- nothing on database
     [Nothing] -> return Nothing   -- database is not coplete
-    [Just (prf',t,rom,sz,sme')] -> runMaybeT $ do
+    [Just (prf,t,rom,sz,sme')] -> runMaybeT $ do
       -- FIXME we can do join instead ??
-      prf <- MaybeT $ getProf conn prf'
       ltm <- MaybeT $ getLectime conn s
       sme <- MaybeT . return $ intTsemester sme'
       return $ Section {
-        sect_id = s, prof = prf, ta = TeachAssi t,
+        sect_id = s, prof = prf, ta = t,
         lectime = ltm, roomid = rom, enroll_size = sz, semester = sme
       }
   where
