@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Schedule.DBServer (
-    getConnection
+    DB
+  , getConnection
   , getLectime
   , getRequir
   , getProf
@@ -16,9 +17,12 @@ import qualified Data.ByteString.Lazy as B
 import qualified Data.HashMap.Lazy as H
 import Data.Aeson
 import Database.MySQL.Simple
+import Database.MySQL.Simple.QueryResults
+import Database.MySQL.Simple.QueryParams
 import System.IO
 import Control.Applicative ((<|>))
 import Control.Exception (bracket_)
+import Control.Monad.Reader
 
 import Schedule.Types.Internal
 {- DBServer module imports Types.Internal directly
@@ -30,6 +34,14 @@ import Schedule.Types.Internal
  - for example getRequir has type of 'Crsid -> IO CrsidSet'
  - not 'Crsid -> IO [Course]' nor 'Course -> IO [Course]'.
  -}
+
+
+type DB = ReaderT Connection IO
+
+queryDB :: (QueryParams p, QueryResults r) => Query -> p -> DB [r]
+queryDB q arg = do
+  conn <- ask
+  liftIO $ query conn q arg
 
 
 instance FromJSON ConnectInfo where
@@ -61,9 +73,9 @@ getConnection = do
 
 -- gets Lectimes related with given crsid and sect# from the server
 -- returns empty set if no lectime found
-getLectime :: Connection -> Sectid -> IO LectimeSet
-getLectime conn (Sectid c n) = S.fromList . map (uncurry Lectime)
-  <$> query conn selq (crsidTstr c :: Text, n)
+getLectime :: Sectid -> DB LectimeSet
+getLectime (Sectid c n) = S.fromList . map (uncurry Lectime) <$>
+  queryDB selq (crsidTstr c :: Text, n)
   where selq = "\
     \ SELECT day, period \
     \ FROM class \
@@ -73,9 +85,8 @@ getLectime conn (Sectid c n) = S.fromList . map (uncurry Lectime)
 
 -- returns all the crsid that is in requir-relation with given crs
 -- all x where (x ~> crs), c.f. (x, crs)
-getRequir :: Connection -> Crsid -> IO CrsidSet
-getRequir conn crs =
-  S.fromList . map fromOnly <$> query conn selq (Only crs)
+getRequir :: Crsid -> DB CrsidSet
+getRequir crs = S.fromList . map fromOnly <$> queryDB selq (Only crs)
   where selq = "\
     \ SELECT requir \
     \ FROM relation_requir \
@@ -85,9 +96,9 @@ getRequir conn crs =
 
 -- gets Prof information for given name from the server
 -- returns Nothing if sectiong with sectid not exist in DB
-getProf :: Connection -> Text -> IO (Maybe Prof)
-getProf conn name = do
-  x <- query conn selq (Only name)
+getProf :: Text -> DB (Maybe Prof)
+getProf name = do
+  x <- queryDB selq (Only name)
   -- there will be one or zero result since crsid is primary
   return $ case map nulting x of
     [] -> Nothing          -- nothing on database
@@ -105,10 +116,10 @@ getProf conn name = do
 
 -- gets Course with given crsid from the server
 -- returns Nothing if sectiong with sectid not exist in DB
-getCrs :: Connection -> Crsid -> IO (Maybe Course)
-getCrs conn c = do
+getCrs :: Crsid -> DB (Maybe Course)
+getCrs c = do
   -- there will be one or zero result since crsid is primary
-  x <- query conn selq $ Only (crsidTstr c :: Text)
+  x <- queryDB selq $ Only (crsidTstr c :: Text)
   return $ case x of
     [] -> Nothing
     -- all fields are not null, we don't check nullity
@@ -125,14 +136,14 @@ getCrs conn c = do
 
 -- gets Section with given sectid from the server
 -- returns Nothing if sectiong with sectid not exist in DB
-getSect :: Connection -> Sectid -> IO (Maybe Section)
-getSect conn s@(Sectid c n) = do
-  x <- query conn selq (crsidTstr c :: Text, n)
+getSect :: Sectid -> DB (Maybe Section)
+getSect s@(Sectid c n) = do
+  x <- queryDB selq (crsidTstr c :: Text, n)
   -- there will be one or zero result since crsid is primary
   case map nulting x of
     [] -> return Nothing          -- nothing on database
     [(prf,t,rom,sz,sme)] -> do
-      ltm <- getLectime conn s
+      ltm <- getLectime s
       return . Just $ Section {
         sect_id = s, prof = prf, ta = t, roomid = rom,
         enroll_size = sz, semester = sme, lectime = ltm
