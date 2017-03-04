@@ -163,7 +163,7 @@ instance FromJSON School where
 
 -- course id (e.g. GS1101)
 -- constructor is hidden to outside
-data Crsid = Crsid School Int
+data Crsid = Crsid { school :: School, code :: Int }
   deriving (Eq, Show, Read, Ord)
 
 type CrsidSet = Set Crsid
@@ -213,7 +213,7 @@ instance DB.Result Crsid where
 
 -- section id (e.g. GS1101-1)
 -- constructor is hidden to outside
-data Sectid = Sectid Crsid Int
+data Sectid = Sectid { crsid :: Crsid, sectno :: Int }
   deriving (Eq, Show, Read, Ord)
 
 sectidTstr :: IString s => Sectid -> s

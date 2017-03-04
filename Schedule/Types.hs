@@ -25,10 +25,15 @@ module Schedule.Types (
   ,   strTschool
 
   , Crsid()
+  ,   school
+  ,   code
   ,   crsidTstr
   ,   strTcrsid
+  , CrsidSet
 
   , Sectid()
+  ,   crsid
+  ,   sectno
   ,   sectidTstr
   ,   strTsectid
 
@@ -51,11 +56,9 @@ module Schedule.Types (
   ,   title
   ,   title_kr
   ,   credit
-  ,   requir
 
   , Section()
-  ,   crsid
-  ,   sectno
+  ,   sect_id
   ,   prof
   ,   ta
   ,   lectime
