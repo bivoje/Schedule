@@ -5,8 +5,8 @@ module Schedule.DBServer (
   , getLectime
   , getRequir
   , getProf
-  , getRefCrs
-  , getRefSect
+  , getCrs
+  , getSect
   ) where
 
 import Data.Maybe (mapMaybe)
@@ -29,10 +29,7 @@ import Schedule.Types.Internal
  - Paradigm in types of all the getters is primitive.
  - They take and return minimal information for the given task.
  - for example getRequir has type of 'Crsid -> IO CrsidSet'
- - not 'Crsid -> IO [RefCourse]' nor 'Course -> IO [RefCourse]'.
- - The reason they return Ref-version instead of raw data
- - (c.f. RefSect instead of just Sect) is because for the most of the time
- - complex data will be refered with Ref-version
+ - not 'Crsid -> IO [Course]' nor 'Course -> IO [Course]'.
  -}
 
 
@@ -67,8 +64,8 @@ getConnection = do
 -- returns empty set if no lectime found
 -- returns Nothing if server contains invalid value (mostly weekday)
 -- this occurs because db (mysql) does not support 'check' clause
-getLectime :: Connection -> (Crsid,Int) -> IO (Maybe LectimeSet)
-getLectime conn (c,n) =
+getLectime :: Connection -> Sectid -> IO (Maybe LectimeSet)
+getLectime conn (Sectid c n) =
   fmap S.fromList . mapM (\(w,p) -> flip Lectime p <$> strTweekday w)
   <$> (query conn selq (crsidTstr c :: Text, n) :: IO [(Text,Int)])
   where selq = "\
@@ -110,16 +107,16 @@ getProf conn name = do
       \ ;"
 
 
--- gets Course (as RefCrs) with given crsid from the server
+-- gets Course with given crsid from the server
 -- returns Nothing in either case of not existing and not complete
-getRefCrs :: Connection -> Crsid -> IO (Maybe RefCrs)
-getRefCrs conn c = do
+getCrs :: Connection -> Crsid -> IO (Maybe Course)
+getCrs conn c = do
   -- there will be one or zero result since crsid is primary
   x <- query conn selq $ Only (crsidTstr c :: Text)
   return $ case x of
     [] -> Nothing
     -- all fields are not null, we don't check nullity
-    [(tlt,tlk,cre)] -> Just . RefCrs $ Course {
+    [(tlt,tlk,cre)] -> Just $ Course {
       crs_id = c, title = tlt, title_kr = tlk, credit = cre
     }
   where
@@ -130,10 +127,10 @@ getRefCrs conn c = do
       \ ;"
 
 
--- gets Section (as RefSect) with given crsid and sect# from the server
+-- gets Section with given sectid from the server
 -- returns Nothing in either case of not existing and not complete
-getRefSect :: Connection -> (Crsid,Int) -> IO (Maybe RefSect)
-getRefSect conn (c,n) = do
+getSect :: Connection -> Sectid -> IO (Maybe Section)
+getSect conn s@(Sectid c n) = do
   x <- query conn selq (crsidTstr c :: Text, n)
   -- there will be one or zero result since crsid is primary
   case fmap nullize5 x of
@@ -142,10 +139,10 @@ getRefSect conn (c,n) = do
     [Just (prf',t,rom,sz,sme')] -> runMaybeT $ do
       -- FIXME we can do join instead ??
       prf <- MaybeT $ getProf conn prf'
-      ltm <- MaybeT $ getLectime conn (c,n)
+      ltm <- MaybeT $ getLectime conn s
       sme <- MaybeT . return $ intTsemester sme'
-      return . RefSect $ Section {
-        crsid = c, sectno = n, prof = prf, ta = TeachAssi t,
+      return $ Section {
+        sect_id = s, prof = prf, ta = TeachAssi t,
         lectime = ltm, roomid = rom, enroll_size = sz, semester = sme
       }
   where

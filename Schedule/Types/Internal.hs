@@ -186,7 +186,7 @@ strTcrsid s =
            <*> f n
   where -- efficiently (lazily?) check if the length is 4
     f s@[_,_,_,_] | all isNumber s = Just (read s)
-    f s = Nothing
+                  | otherwise = Nothing
 
 instance ToJSON Crsid where
   toJSON (Crsid s c) =
@@ -209,6 +209,35 @@ instance DB.Result Crsid where
       Just a -> a
       Nothing -> throw $ DB.ConversionFailed (show $ DB.fieldType f)
         "Crsid" (B8.unpack (DB.fieldName f)) "could not parse"
+
+
+-- section id (e.g. GS1101-1)
+-- constructor is hidden to outside
+data Sectid = Sectid Crsid Int
+  deriving (Eq, Show, Read, Ord)
+
+sectidTstr :: IString s => Sectid -> s
+sectidTstr (Sectid cs n) =
+  crsidTstr cs <> "-" <> fromString (show n)
+
+strTsectid :: String -> Maybe Sectid
+strTsectid s =
+  let (cs,n) = splitAt 6 s
+  in Sectid <$> strTcrsid cs
+            <*> f n
+  where f s | all isNumber s = Just (read s)
+            | otherwise = Nothing
+
+instance ToJSON Sectid where
+  toJSON (Sectid cs n) =
+    object [ "crsid" .= cs
+           , "sectno" .= n ]
+
+instance FromJSON Sectid where
+  parseJSON (Object v) =
+    Sectid <$> v .: "crsid"
+           <*> v .: "sectno"
+  parseJSON _ = fail "expected section id"
 
 
 -- Lectime {Monday 3} : third lecture time on Monday
@@ -263,8 +292,7 @@ data Course = Course
 
 -- section data
 data Section = Section
-  { crsid   :: Crsid
-  , sectno  :: Int
+  { sect_id :: Sectid
   , prof    :: Prof
   , ta      :: TeachAssi
   , lectime :: LectimeSet
@@ -272,44 +300,3 @@ data Section = Section
   , enroll_size :: Int
   , semester :: Semester
   } deriving (Show, Read)
-
-
--- wrap Course to treat it by (only) it's primary key (crsid)
-newtype RefCrs = RefCrs Course
-  deriving (Show, Read)
-
-instance Eq RefCrs where
-  (RefCrs a) == (RefCrs b) =
-    ((==) `on` crs_id) a b
-
-instance Ord RefCrs where
-  (RefCrs a) <= (RefCrs b) =
-    ((<=) `on` crs_id) a b
-
-instance ToJSON RefCrs where
-  toJSON (RefCrs rc) = toJSON (crs_id rc)
-
-
--- wrap Section to treat it by (only) it's primary key (crsid, sectno)
-newtype RefSect = RefSect Section
-  deriving (Show, Read)
-
-instance Eq RefSect where
-  (RefSect a) == (RefSect b) =
-    ((==) `on` crsid) a b ||
-    ((==) `on` sectno) a b
-
-instance Ord RefSect where
-  (RefSect a) <= (RefSect b)
-    | ((>) `on` crsid) a b = False
-    | ((<) `on` crsid) a b = True
-    | otherwise = ((<=) `on` sectno) a b
-
-instance ToJSON RefSect where
-  toJSON (RefSect rs) =
-    object [ "crsid" .= crsid rs
-           , "sectno" .= sectno rs ]
-
-refsectTstr :: IString s => RefSect -> s
-refsectTstr (RefSect a) =
-  crsidTstr (crsid a) `mappend` "-" `mappend` fromString (show $ sectno a)

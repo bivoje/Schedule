@@ -28,6 +28,10 @@ module Schedule.Types (
   ,   crsidTstr
   ,   strTcrsid
 
+  , Sectid()
+  ,   sectidTstr
+  ,   strTsectid
+
   , Lectime()
   , LecTime()
 
@@ -58,10 +62,6 @@ module Schedule.Types (
   ,   roomid
   ,   enroll_size
   ,   semester
-
-  , RefCrs()
-  , RefSect()
-  ,   refsectTstr
 
   ) where
 
