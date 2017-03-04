@@ -9,7 +9,7 @@ module Schedule.DBServer (
   , getSect
   ) where
 
-import Data.Maybe (mapMaybe)
+import Data.Maybe (mapMaybe, fromMaybe)
 import Data.Text (Text)
 import qualified Data.Set as S (fromList)
 import qualified Data.ByteString.Lazy as B
@@ -19,7 +19,6 @@ import Database.MySQL.Simple
 import System.IO
 import Control.Applicative ((<|>))
 import Control.Exception (bracket_)
-import Control.Monad.Trans.Maybe
 
 import Schedule.Types.Internal
 {- DBServer module imports Types.Internal directly
@@ -85,18 +84,18 @@ getRequir conn crs =
 
 
 -- gets Prof information for given name from the server
--- returns Nothing in either case of not existing and not complete
+-- returns Nothing if sectiong with sectid not exist in DB
 getProf :: Connection -> Text -> IO (Maybe Prof)
 getProf conn name = do
   x <- query conn selq (Only name)
   -- there will be one or zero result since crsid is primary
-  return $ case fmap nullize3 x of
+  return $ case map nulting x of
     [] -> Nothing          -- nothing on database
-    [Nothing] -> Nothing   -- database is not coplete
-    [Just (off,ful,eml)] -> Just $ Prof name off ful eml
+    [(off,ful,eml)] -> Just $ Prof name off ful eml
   where
-    nullize3 (Just a, Just b, Just c) = Just (a,b,c)
-    nullize3 _ = Nothing
+    nulting (a,b,c) = (nult a, nult' b, nult c)
+    nult = fromMaybe ""
+    nult' = fromMaybe False
     selq = "\
       \ SELECT office, full, email \
       \ FROM professor \
@@ -105,7 +104,7 @@ getProf conn name = do
 
 
 -- gets Course with given crsid from the server
--- returns Nothing in either case of not existing and not complete
+-- returns Nothing if sectiong with sectid not exist in DB
 getCrs :: Connection -> Crsid -> IO (Maybe Course)
 getCrs conn c = do
   -- there will be one or zero result since crsid is primary
@@ -125,24 +124,23 @@ getCrs conn c = do
 
 
 -- gets Section with given sectid from the server
--- returns Nothing in either case of not existing and not complete
+-- returns Nothing if sectiong with sectid not exist in DB
 getSect :: Connection -> Sectid -> IO (Maybe Section)
 getSect conn s@(Sectid c n) = do
   x <- query conn selq (crsidTstr c :: Text, n)
   -- there will be one or zero result since crsid is primary
-  case fmap nullize5 x of
+  case map nulting x of
     [] -> return Nothing          -- nothing on database
-    [Nothing] -> return Nothing   -- database is not coplete
-    [Just (prf,t,rom,sz,sme)] -> do
-      -- FIXME we can do join instead ??
+    [(prf,t,rom,sz,sme)] -> do
       ltm <- getLectime conn s
       return . Just $ Section {
-        sect_id = s, prof = prf, ta = t,
-        lectime = ltm, roomid = rom, enroll_size = sz, semester = sme
+        sect_id = s, prof = prf, ta = t, roomid = rom,
+        enroll_size = sz, semester = sme, lectime = ltm
       }
   where
-    nullize5 (Just a, Just b, Just c, Just d, Just e) = Just (a,b,c,d,e)
-    nullize5 _ = Nothing
+    nulting (a,b,c,d,e) = (nult a, nult b, nult c, nult' d, e)
+    nult = fromMaybe ""
+    nult' = fromMaybe 0
     selq = "\
       \ SELECT prof, ta, room, enroll_size, semester \
       \ FROM section \
