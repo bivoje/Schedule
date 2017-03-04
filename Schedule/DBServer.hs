@@ -94,6 +94,17 @@ getRequir crs = S.fromList . map fromOnly <$> queryDB selq (Only crs)
     \ ;"
 
 
+-- returns all the crsid that is in retake-relation with given crs
+-- all x where (x ~> crs), c.f. (x, crs)
+getRetake :: Crsid -> DB CrsidSet
+getRetake crs = S.fromList . map fromOnly <$> queryDB selq (Only crs)
+  where selq = "\
+    \ SELECT took \
+    \ FROM relation_retake \
+    \ WHERE take = ? \
+    \ ;"
+
+
 -- gets Prof information for given name from the server
 -- returns Nothing if sectiong with sectid not exist in DB
 getProf :: Text -> DB (Maybe Prof)
