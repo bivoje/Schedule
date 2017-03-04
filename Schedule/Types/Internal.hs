@@ -15,6 +15,7 @@ import qualified Data.ByteString.Char8 as B8 (unpack)
 import Data.Function
 import Data.List (splitAt)
 import Data.Char (isNumber)
+import Data.Maybe (fromMaybe)
 import Control.Monad
 import Control.Exception (assert,throw)
 import qualified Database.MySQL.Base.Types as DB
@@ -58,6 +59,13 @@ wrap f g a b= f (g a b)
 infixr 6 <>
 (<>) :: Monoid m => m -> m -> m
 (<>) = mappend
+
+-- throws an ConversionFailed exception.
+-- used in DB.Result instances
+conversionFailed :: DB.Field -> String -> a
+conversionFailed f fname = throw $
+  DB.ConversionFailed (show $ DB.fieldType f)
+    fname (B8.unpack (DB.fieldName f)) "could not parse"
 
 
 ------------------------------------------------------------------
@@ -109,6 +117,14 @@ strTweekday s = case s of {
   "SUN" -> Just Sunday   ; _ -> Nothing
 }
 
+instance DB.Param WeekDay where
+  render = DB.render . (weekdayTstr :: WeekDay -> Text)
+
+instance DB.Result WeekDay where
+  convert f x =
+    let str = DB.convert f x :: Text
+     in fromMaybe (conversionFailed f "WeekDay") $ strTweekday str
+
 
 -- Semester {year, seaon}
 data Semester = Semester Int Season
@@ -128,6 +144,14 @@ intTsemester i
   | i < 100 = Nothing
   | i `div` 100 > (fromEnum (maxBound :: Season) +2) = Nothing
   | otherwise = Just . Semester (mod i 100) . toEnum $ div i 100 - 1
+
+instance DB.Param Semester where
+  render = DB.render . semesterTint
+
+instance DB.Result Semester where
+  convert f x =
+    let int = DB.convert f x :: Int
+     in fromMaybe (conversionFailed f "Semester") $ intTsemester int
 
 
 -- School department
@@ -205,10 +229,7 @@ instance DB.Param Crsid where
 instance DB.Result Crsid where
   convert f x =
     let str = DB.convert f x :: String
-    in case strTcrsid str of
-      Just a -> a
-      Nothing -> throw $ DB.ConversionFailed (show $ DB.fieldType f)
-        "Crsid" (B8.unpack (DB.fieldName f)) "could not parse"
+     in fromMaybe (conversionFailed f "Crsid") $ strTcrsid str
 
 
 -- section id (e.g. GS1101-1)
