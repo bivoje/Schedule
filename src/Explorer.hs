@@ -2,6 +2,7 @@
 
 module Explorer where
 
+import VtyUtil
 
 import Codec.Xlsx
 import Graphics.Vty
@@ -16,44 +17,23 @@ import Control.Monad.RWS
 import Control.Lens
 
 
--- from utility-ht Data.Ord.HT
-{-# INLINE limit #-}
-limit :: (Ord a) => (a,a) -> a -> a
-limit (l,u) = max l . min u
-
-
 type Operate = RWST Vty () Xlsx IO
 
 explorer :: Operate ()
 explorer = do
-  mtitle <- selectSheets 0
+  mtitle <- selectSheets
   case mtitle of
     Nothing -> return ()
     Just title -> explorerSheet title (1, 1) >> explorer
 
-selectSheets :: Int -> Operate (Maybe Text)
-selectSheets idx = do
-  selectSheetsScreen idx -- FIXME drawn too many times ...
-  n <- gets (length . _xlSheets)
-  e <- asks nextEvent >>= liftIO
-  case e of
-    EvKey KEsc   _ -> return Nothing
-    EvKey KUp    _ -> selectSheets $ limit (0, n) (idx-1)
-    EvKey KDown  _ -> selectSheets $ limit (0, n) (idx+1)
-    EvKey KEnter _ -> gets $ Just . fst . (!! idx) . _xlSheets
-    _ -> selectSheets idx
-
--- TODO we don't have to [formatTitle] at every time...
-selectSheetsScreen :: Int -> Operate ()
-selectSheetsScreen idx = do
-  let heading = string defAttr "select one among following sheets in xlsx file..."
-  titles <- gets (map fst . _xlSheets)
-  let body = pad 4 0 0 0 . vertCat $ zipWith formatTitle [0..] titles
-  vty <- ask
-  liftIO $ update vty $ picForImage (heading <-> body)
-  where formatTitle n title
-          | n ==  idx = text' (defAttr `withStyle` reverseVideo) title
-          | otherwise = text' defAttr title
+selectSheets :: Operate (Maybe Text)
+selectSheets = do
+  elems <- gets (map fst . _xlSheets)
+  let heading = "select one among following sheets in xlsx file..."
+  midx <- liftIO =<< asks (selectList text' 0 elems heading)
+  case midx of
+    Just idx -> gets $ Just . fst . (!! idx) . _xlSheets
+    Nothing -> return Nothing
 
 explorerSheet :: Text -> (Int, Int) -> Operate ()
 explorerSheet title pos@(r, c) = do
