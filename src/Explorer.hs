@@ -8,6 +8,7 @@ import Graphics.Vty
 
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Read as T
 import Data.List
 import Data.Maybe (fromMaybe)
 
@@ -45,7 +46,7 @@ selectSheets idx = do
 -- TODO we don't have to [formatTitle] at every time...
 selectSheetsScreen :: Int -> Operate ()
 selectSheetsScreen idx = do
-  let heading = string defAttr "select one among following sheets in xlsx file..." 
+  let heading = string defAttr "select one among following sheets in xlsx file..."
   titles <- gets (map fst . _xlSheets)
   let body = pad 4 0 0 0 . vertCat $ zipWith formatTitle [0..] titles
   vty <- ask
@@ -64,7 +65,7 @@ explorerSheet title pos@(r, c) = do
     EvKey KLeft  m | MCtrl `elem` m -> explorerSheet title (r, 1)
     EvKey KLeft  m | otherwise      -> explorerSheet title (r, max 1 (c-1))
     EvKey KUp    m | MCtrl `elem` m -> explorerSheet title (1, c)
-    EvKey KUp    m | otherwise      -> explorerSheet title (max 1 (r-1), c) 
+    EvKey KUp    m | otherwise      -> explorerSheet title (max 1 (r-1), c)
     EvKey KDown  _ -> explorerSheet title (r+1, c)
     --EvKey (KChar 'g') _ ??? -> >>= explorerSheet title
     _ -> explorerSheet title pos
@@ -102,7 +103,36 @@ showCellValue width cv = resizeWidth width $ imaginary cv
         imaginary (CellRich rtrs) = horizCat $ map imaginrtr rtrs
         imaginary (CellError err) = string (defAttr `withBackColor` red)  $ show err
         imaginrtr (RichTextRun Nothing t) = text' defAttr $ T.map newline2space t
-        imaginrtr (RichTextRun _ t) = text' (defAttr `withForeColor` red) $ T.map newline2space t
+        imaginrtr (RichTextRun (Just p) t) = text' (rtrpsAttr p) $ T.map newline2space t
         newline2space '\n' = ' '
         newline2space '\r' = ' '
         newline2space c = c
+
+rtrpsAttr :: RunProperties -> Attr
+rtrpsAttr rtrps =
+  runit defAttr [
+    let mb = booled =<< rtrps ^? runPropertiesBold . _Just
+     in runif mb $ \_ -> (`withStyle` bold), -- const (`withStyle` bold)
+    let mc = text2color =<< rtrps ^? runPropertiesColor . _Just . colorARGB . _Just
+     in runif mc $ \c -> (`withForeColor` c), -- flip withForeColor
+    let mi = booled =<< rtrps ^? runPropertiesItalic . _Just
+     in runif mi $ const (`withStyle` italic),
+    let ms = booled =<< rtrps ^? runPropertiesOutline . _Just
+     in runif ms $ const (`withStyle` standout),
+    --let mt = booled =<< rtrps ^? runPropertiesStrikeThrough . _Just
+    -- in runif mt $ const (`withStyle` -- strike not supported in VTY
+    let mu = underlined =<< rtrps ^? runPropertiesUnderline . _Just
+     in runif mu $ const (`withStyle` underline) ]
+  where
+    text2color = fmap int2color .reader2maybe . T.hexadecimal
+    reader2maybe = either (const Nothing) (Just . fst)
+    int2color argb =
+      let (arg,b) = argb `divMod` 0x100
+          (ar,g)  = arg  `divMod` 0x100
+          (a,r)   = ar   `divMod` 0x100
+       in rgbColor r g b
+    booled b = if b then Just b else Nothing
+    underlined x = if x == FontUnderlineNone then Nothing else Just x
+    runif Nothing f a = a
+    runif (Just v) f a = f v a
+    runit x fs = foldr (.) id fs x
